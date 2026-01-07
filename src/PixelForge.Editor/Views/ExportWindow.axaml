@@ -1,0 +1,142 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:PixelForge.Editor.ViewModels"
+        x:Class="PixelForge.Editor.Views.ExportWindow"
+        x:DataType="vm:ExportViewModel"
+        Title="Export Game"
+        Width="800" Height="600"
+        WindowStartupLocation="CenterScreen">
+
+    <Design.DataContext>
+        <vm:ExportViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!-- Export options -->
+        <ScrollViewer Grid.Row="0" Margin="20">
+            <StackPanel>
+                <TextBlock Text="Export Settings" FontWeight="Bold" FontSize="18" Margin="0,0,0,15"/>
+
+                <!-- Output name -->
+                <TextBlock Text="Output Name:" FontWeight="Bold" Margin="0,5,0,2"/>
+                <TextBox Text="{Binding OutputName}" Watermark="Game name"/>
+
+                <!-- Platform -->
+                <TextBlock Text="Target Platform:" FontWeight="Bold" Margin="0,15,0,2"/>
+                <ComboBox SelectedItem="{Binding SelectedPlatform}"
+                          HorizontalAlignment="Stretch">
+                    <ComboBoxItem Content="Windows (x64)"/>
+                    <ComboBoxItem Content="Linux (x64)"/>
+                    <ComboBoxItem Content="macOS (x64)"/>
+                    <ComboBoxItem Content="Windows (ARM64)"/>
+                    <ComboBoxItem Content="Linux (ARM64)"/>
+                    <ComboBoxItem Content="macOS (ARM64)"/>
+                </ComboBox>
+
+                <!-- Configuration -->
+                <TextBlock Text="Configuration:" FontWeight="Bold" Margin="0,15,0,2"/>
+                <ComboBox SelectedItem="{Binding Configuration}"
+                          HorizontalAlignment="Stretch">
+                    <ComboBoxItem Content="Debug"/>
+                    <ComboBoxItem Content="Release"/>
+                </ComboBox>
+
+                <!-- Options -->
+                <TextBlock Text="Build Options:" FontWeight="Bold" Margin="0,15,0,5"/>
+
+                <CheckBox IsChecked="{Binding SelfContained}" Margin="0,5">
+                    <StackPanel>
+                        <TextBlock Text="Self-Contained" FontWeight="Bold"/>
+                        <TextBlock Text="Include .NET runtime (larger but no dependencies)"
+                                   FontSize="11"
+                                   Foreground="Gray"/>
+                    </StackPanel>
+                </CheckBox>
+
+                <CheckBox IsChecked="{Binding SingleFile}" Margin="0,5">
+                    <StackPanel>
+                        <TextBlock Text="Single File" FontWeight="Bold"/>
+                        <TextBlock Text="Package as single executable"
+                                   FontSize="11"
+                                   Foreground="Gray"/>
+                    </StackPanel>
+                </CheckBox>
+
+                <CheckBox IsChecked="{Binding ReadyToRun}" Margin="0,5">
+                    <StackPanel>
+                        <TextBlock Text="Ready To Run" FontWeight="Bold"/>
+                        <TextBlock Text="Improve startup time (larger file)"
+                                   FontSize="11"
+                                   Foreground="Gray"/>
+                    </StackPanel>
+                </CheckBox>
+
+                <CheckBox IsChecked="{Binding TrimUnusedCode}" Margin="0,5">
+                    <StackPanel>
+                        <TextBlock Text="Trim Unused Code" FontWeight="Bold"/>
+                        <TextBlock Text="Remove unused assemblies (smaller but may break reflection)"
+                                   FontSize="11"
+                                   Foreground="Gray"/>
+                    </StackPanel>
+                </CheckBox>
+
+                <CheckBox IsChecked="{Binding CreateArchive}" Margin="0,5">
+                    <StackPanel>
+                        <TextBlock Text="Create Archive" FontWeight="Bold"/>
+                        <TextBlock Text="Create .zip file for distribution"
+                                   FontSize="11"
+                                   Foreground="Gray"/>
+                    </StackPanel>
+                </CheckBox>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Export log -->
+        <Border Grid.Row="1"
+                BorderBrush="Gray"
+                BorderThickness="0,1"
+                Background="#F5F5F5"
+                Margin="20,0">
+            <Grid RowDefinitions="Auto,*">
+                <StackPanel Grid.Row="0"
+                            Orientation="Horizontal"
+                            Background="#E0E0E0"
+                            Padding="10">
+                    <TextBlock Text="Export Log" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <Button Content="Clear"
+                            Command="{Binding ClearLogCommand}"
+                            Margin="10,0,0,0"
+                            Padding="5,2"/>
+                </StackPanel>
+
+                <ListBox Grid.Row="1"
+                         ItemsSource="{Binding ExportLog}"
+                         FontFamily="Consolas"
+                         FontSize="11"
+                         Background="Transparent"
+                         BorderThickness="0">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </Border>
+
+        <!-- Action buttons -->
+        <StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="20">
+            <Button Content="{Binding IsExporting, Converter={x:Static ObjectConverters.BoolToObject}, ConverterParameter='Exporting...|Export'}"
+                    Command="{Binding ExportCommand}"
+                    IsEnabled="{Binding !IsExporting}"
+                    Padding="20,10"
+                    Margin="0,0,10,0"/>
+            <Button Content="Close"
+                    Click="CloseButton_Click"
+                    Padding="20,10"/>
+        </StackPanel>
+    </Grid>
+</Window>

@@ -9,15 +9,25 @@
 - **Entity-Component-System architecture** - Flexible and maintainable game object management
 - **Advanced tile-based maps** - Multi-layer support with parallax backgrounds
 - **Event system** - Visual event scripting with conditional logic
-- **Battle system** - Turn-based combat with customizable formulas
+- **Triple battle system** - Turn-based, ATB, and Action Economy modes
 - **Resource management** - Efficient loading and caching of assets
+- **Shop system** - Complete buy/sell functionality
+- **Dialogue system** - Branching conversations with localization
+- **Quest system** - Objective tracking with rewards
+- **Save/Load system** - Multiple save slots with JSON format
 
 ### Visual Editor
 - **Avalonia-based UI** - Modern, cross-platform editor interface
 - **Map editor** - Multi-layer tile painting with real-time preview
 - **Database editor** - Manage actors, items, skills, enemies, and more
-- **Event editor** - Visual event command editor with drag-and-drop
-- **Asset browser** - Import and manage sprites, tilesets, audio, and animations
+- **Event editor** - Visual event command editor
+- **Script editor** - C# code editor with syntax highlighting
+- **Dialogue editor** - Visual dialogue tree creation with localization
+- **String editor** - Multi-language localization management
+- **Asset browser** - Import and preview sprites, tilesets, and audio
+- **Menu system** - Complete inventory, equipment, skills, status UIs
+- **Test Play** - Launch game directly from editor
+- **Export system** - Multi-platform packaging (Windows/Linux/macOS)
 
 ### Vibe Coding (AI-Powered Development)
 - **Natural language to code** - Describe features in plain English, get C# code

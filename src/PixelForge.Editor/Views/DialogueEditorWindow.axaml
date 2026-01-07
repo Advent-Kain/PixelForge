@@ -1,0 +1,169 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:PixelForge.Editor.ViewModels"
+        x:Class="PixelForge.Editor.Views.DialogueEditorWindow"
+        x:DataType="vm:DialogueEditorViewModel"
+        Title="Dialogue Editor"
+        Width="1200" Height="800"
+        WindowStartupLocation="CenterScreen">
+
+    <Design.DataContext>
+        <vm:DialogueEditorViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,*">
+        <!-- Toolbar -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10">
+            <Button Command="{Binding SaveTreeCommand}" Margin="0,0,5,0">Save</Button>
+            <Button Command="{Binding OpenStringEditorCommand}" Margin="0,0,5,0">Edit Strings</Button>
+            <Separator Width="2" Margin="5,0"/>
+            <Button Command="{Binding AddNodeCommand}" Margin="5,0">Add Node</Button>
+            <Button Command="{Binding DeleteNodeCommand}" Margin="0,0,5,0">Delete Node</Button>
+            <Button Command="{Binding AddChoiceCommand}" Margin="0,0,5,0">Add Choice</Button>
+        </StackPanel>
+
+        <!-- Main content -->
+        <Grid Grid.Row="1" ColumnDefinitions="250,*,350">
+            <!-- Tree list -->
+            <Border Grid.Column="0" BorderBrush="Gray" BorderThickness="0,0,1,0">
+                <Grid RowDefinitions="Auto,Auto,*,Auto">
+                    <TextBlock Grid.Row="0" Text="Dialogue Trees" FontWeight="Bold" Margin="10"/>
+
+                    <!-- New tree -->
+                    <StackPanel Grid.Row="1" Margin="10,0,10,10">
+                        <TextBox Watermark="New tree name..."
+                                 Text="{Binding NewTreeName}"
+                                 Margin="0,0,0,5"/>
+                        <Button Content="Create New Tree"
+                                Command="{Binding NewTreeCommand}"
+                                HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+
+                    <!-- Tree list -->
+                    <ListBox Grid.Row="2"
+                             ItemsSource="{Binding DialogueTrees}"
+                             SelectedItem="{Binding SelectedTree}"
+                             Margin="10,0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <!-- Tree actions -->
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="10">
+                        <Button Content="Load" Command="{Binding LoadTreeCommand}" Margin="0,0,5,0"/>
+                        <Button Content="Delete" Command="{Binding DeleteTreeCommand}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Node list -->
+            <Border Grid.Column="1" BorderBrush="Gray" BorderThickness="0,0,1,0">
+                <Grid RowDefinitions="Auto,*">
+                    <TextBlock Grid.Row="0" Text="Nodes" FontWeight="Bold" Margin="10"/>
+
+                    <ListBox Grid.Row="1"
+                             ItemsSource="{Binding Nodes}"
+                             SelectedItem="{Binding SelectedNode}"
+                             Margin="10,0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding StringKey}" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding Text}"
+                                               TextWrapping="Wrap"
+                                               MaxWidth="400"
+                                               Foreground="Gray"
+                                               FontSize="11"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <!-- Node details -->
+            <ScrollViewer Grid.Column="2">
+                <StackPanel Margin="10" IsVisible="{Binding SelectedNode, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <TextBlock Text="Node Details" FontWeight="Bold" FontSize="16" Margin="0,0,0,10"/>
+
+                    <!-- ID -->
+                    <TextBlock Text="ID:" FontWeight="Bold" Margin="0,5,0,2"/>
+                    <TextBox Text="{Binding SelectedNode.Id}" IsReadOnly="True" Background="#F0F0F0"/>
+
+                    <!-- String Key -->
+                    <TextBlock Text="String Key:" FontWeight="Bold" Margin="0,10,0,2"/>
+                    <TextBox Text="{Binding SelectedNode.StringKey}"/>
+
+                    <!-- Text -->
+                    <TextBlock Text="Text (fallback):" FontWeight="Bold" Margin="0,10,0,2"/>
+                    <TextBox Text="{Binding SelectedNode.Text}"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             Height="80"/>
+
+                    <!-- Speaker Name -->
+                    <TextBlock Text="Speaker Name:" FontWeight="Bold" Margin="0,10,0,2"/>
+                    <TextBox Text="{Binding SelectedNode.SpeakerName}" Watermark="Optional speaker name"/>
+
+                    <!-- Node Type -->
+                    <TextBlock Text="Node Type:" FontWeight="Bold" Margin="0,10,0,2"/>
+                    <ComboBox SelectedItem="{Binding SelectedNode.NodeType}"
+                              HorizontalAlignment="Stretch">
+                        <ComboBoxItem Content="Standard"/>
+                        <ComboBoxItem Content="Choice"/>
+                        <ComboBoxItem Content="End"/>
+                    </ComboBox>
+
+                    <!-- Next Node (for Standard type) -->
+                    <TextBlock Text="Next Node ID:" FontWeight="Bold" Margin="0,10,0,2"/>
+                    <TextBox Text="{Binding SelectedNode.NextNodeId}"
+                             Watermark="Leave empty for end node"/>
+
+                    <!-- Choices -->
+                    <TextBlock Text="Choices:" FontWeight="Bold" Margin="0,15,0,5"/>
+                    <ItemsControl ItemsSource="{Binding SelectedNode.Choices}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="LightGray"
+                                        BorderThickness="1"
+                                        Padding="5"
+                                        Margin="0,0,0,5">
+                                    <Grid RowDefinitions="Auto,Auto,Auto">
+                                        <TextBox Grid.Row="0"
+                                                 Text="{Binding StringKey}"
+                                                 Watermark="String key"
+                                                 Margin="0,0,0,5"/>
+                                        <TextBox Grid.Row="1"
+                                                 Text="{Binding Text}"
+                                                 Watermark="Choice text"
+                                                 Margin="0,0,0,5"/>
+                                        <TextBox Grid.Row="2"
+                                                 Text="{Binding NextNodeId}"
+                                                 Watermark="Next node ID"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Conditions -->
+                    <TextBlock Text="Conditions:" FontWeight="Bold" Margin="0,15,0,5"/>
+                    <TextBox Text="{Binding SelectedNode.Conditions}"
+                             AcceptsReturn="True"
+                             Height="60"
+                             Watermark="Condition expressions (one per line)"/>
+
+                    <!-- Actions -->
+                    <TextBlock Text="Actions (Advanced):" FontWeight="Bold" Margin="0,15,0,5"/>
+                    <TextBlock Text="Actions are set via event commands"
+                               Foreground="Gray"
+                               FontSize="11"
+                               Margin="0,0,0,5"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</Window>

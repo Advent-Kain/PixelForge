@@ -1,0 +1,146 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:PixelForge.Editor.ViewModels"
+        x:Class="PixelForge.Editor.Views.AssetBrowserWindow"
+        x:DataType="vm:AssetBrowserViewModel"
+        Title="Asset Browser"
+        Width="1200" Height="800"
+        WindowStartupLocation="CenterScreen">
+
+    <Design.DataContext>
+        <vm:AssetBrowserViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,*">
+        <!-- Toolbar -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10">
+            <Button Command="{Binding RefreshCommand}" Margin="0,0,5,0">Refresh</Button>
+            <Button Command="{Binding ImportAssetCommand}" Margin="0,0,5,0">Import...</Button>
+            <Button Command="{Binding DeleteAssetCommand}" Margin="0,0,5,0">Delete</Button>
+            <Separator Width="2" Margin="5,0"/>
+            <Button Command="{Binding OpenInExplorerCommand}" Margin="5,0">Open in Explorer</Button>
+            <Separator Width="2" Margin="5,0"/>
+            <TextBox Watermark="Search assets..."
+                     Text="{Binding SearchFilter}"
+                     Width="200"
+                     Margin="5,0"/>
+        </StackPanel>
+
+        <!-- Main content -->
+        <Grid Grid.Row="1" ColumnDefinitions="200,*,350">
+            <!-- Categories -->
+            <Border Grid.Column="0" BorderBrush="Gray" BorderThickness="0,0,1,0">
+                <Grid RowDefinitions="Auto,*">
+                    <TextBlock Grid.Row="0" Text="Categories" FontWeight="Bold" Margin="10"/>
+
+                    <ListBox Grid.Row="1"
+                             ItemsSource="{Binding Categories}"
+                             SelectedItem="{Binding SelectedCategory}"
+                             Margin="10,0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding Path}"
+                                               FontSize="10"
+                                               Foreground="Gray"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <!-- Asset list -->
+            <Border Grid.Column="1" BorderBrush="Gray" BorderThickness="0,0,1,0">
+                <Grid RowDefinitions="Auto,*,Auto">
+                    <TextBlock Grid.Row="0" Text="Assets" FontWeight="Bold" Margin="10"/>
+
+                    <DataGrid Grid.Row="1"
+                              ItemsSource="{Binding Assets}"
+                              SelectedItem="{Binding SelectedAsset}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              GridLinesVisibility="Horizontal"
+                              Margin="10,0">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
+                            <DataGridTextColumn Header="Size" Binding="{Binding Size}" Width="80"/>
+                            <DataGridTextColumn Header="Modified" Binding="{Binding DateModified, StringFormat='yyyy-MM-dd'}" Width="100"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Status bar -->
+                    <Border Grid.Row="2"
+                            Background="#F0F0F0"
+                            BorderBrush="Gray"
+                            BorderThickness="0,1,0,0"
+                            Padding="10">
+                        <TextBlock>
+                            <Run Text="Total Assets: "/>
+                            <Run Text="{Binding Assets.Count}"/>
+                            <Run Text=" | Category: "/>
+                            <Run Text="{Binding SelectedCategory.Name}"/>
+                        </TextBlock>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Preview panel -->
+            <ScrollViewer Grid.Column="2">
+                <StackPanel Margin="10" IsVisible="{Binding SelectedAsset, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <TextBlock Text="Asset Preview" FontWeight="Bold" FontSize="16" Margin="0,0,0,10"/>
+
+                    <!-- Asset info -->
+                    <TextBlock Text="Name:" FontWeight="Bold" Margin="0,5,0,2"/>
+                    <TextBox Text="{Binding SelectedAsset.Name}" IsReadOnly="True" Background="#F0F0F0"/>
+
+                    <TextBlock Text="File Name:" FontWeight="Bold" Margin="0,10,0,2"/>
+                    <TextBox Text="{Binding SelectedAsset.FileName}" IsReadOnly="True" Background="#F0F0F0"/>
+
+                    <TextBlock Text="Relative Path:" FontWeight="Bold" Margin="0,10,0,2"/>
+                    <TextBox Text="{Binding SelectedAsset.RelativePath}"
+                             IsReadOnly="True"
+                             Background="#F0F0F0"
+                             TextWrapping="Wrap"/>
+
+                    <TextBlock Text="Size:" FontWeight="Bold" Margin="0,10,0,2"/>
+                    <TextBox Text="{Binding SelectedAsset.Size}" IsReadOnly="True" Background="#F0F0F0"/>
+
+                    <TextBlock Text="Date Modified:" FontWeight="Bold" Margin="0,10,0,2"/>
+                    <TextBox Text="{Binding SelectedAsset.DateModified, StringFormat='yyyy-MM-dd HH:mm:ss'}"
+                             IsReadOnly="True"
+                             Background="#F0F0F0"/>
+
+                    <!-- Image preview -->
+                    <Border Margin="0,20,0,0"
+                            BorderBrush="Gray"
+                            BorderThickness="1"
+                            Background="White"
+                            IsVisible="{Binding PreviewImage, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <Image Source="{Binding PreviewImage}"
+                               MaxHeight="400"
+                               Stretch="Uniform"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                    </Border>
+
+                    <!-- Audio info -->
+                    <StackPanel Margin="0,20,0,0"
+                                IsVisible="{Binding SelectedAsset.Type, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=Audio}">
+                        <TextBlock Text="Audio File" FontWeight="Bold" Margin="0,0,0,5"/>
+                        <TextBlock Text="Preview playback not implemented"
+                                   Foreground="Gray"
+                                   FontStyle="Italic"/>
+                    </StackPanel>
+
+                    <!-- Usage info -->
+                    <TextBlock Text="Usage:" FontWeight="Bold" Margin="0,20,0,5"/>
+                    <TextBlock TextWrapping="Wrap" Foreground="Gray">
+                        This asset can be used in your game. Reference it using the relative path shown above.
+                    </TextBlock>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</Window>

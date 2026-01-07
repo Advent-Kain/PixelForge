@@ -1,0 +1,146 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:PixelForge.Editor.ViewModels"
+        x:Class="PixelForge.Editor.Views.StringEditorWindow"
+        x:DataType="vm:StringEditorViewModel"
+        Title="String Editor - Localization"
+        Width="1000" Height="700"
+        WindowStartupLocation="CenterScreen">
+
+    <Design.DataContext>
+        <vm:StringEditorViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,*">
+        <!-- Toolbar -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10">
+            <Button Command="{Binding SaveLanguageCommand}" Margin="0,0,5,0">Save</Button>
+            <Separator Width="2" Margin="5,0"/>
+            <Button Command="{Binding AddStringCommand}" Margin="5,0">Add String</Button>
+            <Button Command="{Binding DeleteStringCommand}" Margin="0,0,5,0">Delete String</Button>
+            <Separator Width="2" Margin="5,0"/>
+            <TextBox Watermark="Search strings..."
+                     Text="{Binding SearchFilter}"
+                     Width="200"
+                     Margin="5,0"/>
+        </StackPanel>
+
+        <!-- Main content -->
+        <Grid Grid.Row="1" ColumnDefinitions="250,*">
+            <!-- Language list -->
+            <Border Grid.Column="0" BorderBrush="Gray" BorderThickness="0,0,1,0">
+                <Grid RowDefinitions="Auto,Auto,*,Auto">
+                    <TextBlock Grid.Row="0" Text="Languages" FontWeight="Bold" Margin="10"/>
+
+                    <!-- New language -->
+                    <StackPanel Grid.Row="1" Margin="10,0,10,10">
+                        <TextBox Watermark="Language code (e.g., en, ja)"
+                                 Text="{Binding NewLanguageCode}"
+                                 Margin="0,0,0,5"/>
+                        <Button Content="Create Language"
+                                Command="{Binding NewLanguageCommand}"
+                                HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+
+                    <!-- Language list -->
+                    <ListBox Grid.Row="2"
+                             ItemsSource="{Binding LanguageFiles}"
+                             SelectedItem="{Binding SelectedLanguage}"
+                             Margin="10,0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding LanguageCode}" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding FilePath}"
+                                               FontSize="10"
+                                               Foreground="Gray"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <!-- Language actions -->
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="10">
+                        <Button Content="Load" Command="{Binding LoadLanguageCommand}" Margin="0,0,5,0"/>
+                        <Button Content="Delete" Command="{Binding DeleteLanguageCommand}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Strings grid -->
+            <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto">
+                <TextBlock Grid.Row="0"
+                           Text="String Entries"
+                           FontWeight="Bold"
+                           Margin="10"/>
+
+                <!-- String list with details -->
+                <ScrollViewer Grid.Row="1">
+                    <ItemsControl ItemsSource="{Binding Strings}" Margin="10">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="LightGray"
+                                        BorderThickness="1"
+                                        Padding="10"
+                                        Margin="0,0,0,10"
+                                        Background="{Binding $parent[ListBoxItem].IsSelected, Converter={x:Static ObjectConverters.BoolToObject}, ConverterParameter=#E0E0E0|Transparent}">
+                                    <Grid RowDefinitions="Auto,Auto,Auto">
+                                        <!-- Key -->
+                                        <StackPanel Grid.Row="0" Margin="0,0,0,5">
+                                            <TextBlock Text="Key:" FontSize="10" Foreground="Gray"/>
+                                            <TextBox Text="{Binding Key}"
+                                                     FontFamily="Consolas"
+                                                     Background="Transparent"
+                                                     BorderThickness="0"/>
+                                        </StackPanel>
+
+                                        <!-- Value -->
+                                        <StackPanel Grid.Row="1" Margin="0,0,0,5">
+                                            <TextBlock Text="Value:" FontSize="10" Foreground="Gray"/>
+                                            <TextBox Text="{Binding Value}"
+                                                     AcceptsReturn="True"
+                                                     TextWrapping="Wrap"
+                                                     MinHeight="60"
+                                                     Background="Transparent"
+                                                     BorderThickness="1"
+                                                     BorderBrush="LightGray"/>
+                                        </StackPanel>
+
+                                        <!-- Notes -->
+                                        <StackPanel Grid.Row="2">
+                                            <TextBlock Text="Notes (optional):" FontSize="10" Foreground="Gray"/>
+                                            <TextBox Text="{Binding Notes}"
+                                                     Watermark="Context or translation notes..."
+                                                     AcceptsReturn="True"
+                                                     TextWrapping="Wrap"
+                                                     Height="40"
+                                                     Background="Transparent"
+                                                     BorderThickness="1"
+                                                     BorderBrush="LightGray"
+                                                     FontStyle="Italic"
+                                                     Foreground="DarkGray"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- Status bar -->
+                <Border Grid.Row="2"
+                        Background="#F0F0F0"
+                        BorderBrush="Gray"
+                        BorderThickness="0,1,0,0"
+                        Padding="10">
+                    <TextBlock>
+                        <Run Text="Total Strings: "/>
+                        <Run Text="{Binding Strings.Count}"/>
+                        <Run Text=" | Language: "/>
+                        <Run Text="{Binding SelectedLanguage.LanguageCode}"/>
+                    </TextBlock>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>
