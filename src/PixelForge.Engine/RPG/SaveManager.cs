@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Linq;
 using PixelForge.Engine.Core;
 
 namespace PixelForge.Engine.RPG;
@@ -165,12 +166,24 @@ public class SaveManager
             Timestamp = DateTime.Now,
             PlayTime = gameState.PlayTime,
             CurrentMapId = gameState.CurrentMapId,
+            PlayerX = gameState.PlayerX,
+            PlayerY = gameState.PlayerY,
             Gold = gameState.PartyGold,
-            Inventory = new Dictionary<string, int>(gameState.Inventory)
+            Party = gameState.PartyMembers
+                .Select(memberId => new SavedActor
+                {
+                    ActorId = memberId,
+                    Name = memberId,
+                    Level = 1
+                })
+                .ToList(),
+            Inventory = new Dictionary<string, int>(gameState.Inventory),
+            Weapons = new Dictionary<string, int>(gameState.Weapons),
+            Armors = new Dictionary<string, int>(gameState.Armors),
+            Switches = gameState.ExportSwitches(),
+            Variables = gameState.ExportVariables(),
+            SelfSwitches = gameState.ExportSelfSwitches()
         };
-
-        // Save switches and variables
-        // Note: GameState stores these in private dictionaries, would need to expose them
 
         return saveData;
     }
@@ -184,21 +197,47 @@ public class SaveManager
 
         // Apply basic state
         gameState.CurrentMapId = saveData.CurrentMapId;
+        gameState.PlayerX = saveData.PlayerX;
+        gameState.PlayerY = saveData.PlayerY;
         gameState.PartyGold = saveData.Gold;
 
+        gameState.PartyMembers.Clear();
+        foreach (var member in saveData.Party)
+        {
+            if (!string.IsNullOrEmpty(member.ActorId))
+            {
+                gameState.PartyMembers.Add(member.ActorId);
+            }
+        }
+
         // Apply inventory
+        gameState.Inventory.Clear();
         foreach (var item in saveData.Inventory)
         {
             gameState.AddItem(item.Key, item.Value);
         }
+
+        gameState.Weapons.Clear();
+        foreach (var weapon in saveData.Weapons)
+        {
+            gameState.Weapons[weapon.Key] = weapon.Value;
+        }
+
+        gameState.Armors.Clear();
+        foreach (var armor in saveData.Armors)
+        {
+            gameState.Armors[armor.Key] = armor.Value;
+        }
+
+        gameState.ImportSwitches(saveData.Switches);
+        gameState.ImportVariables(saveData.Variables);
+        gameState.ImportSelfSwitches(saveData.SelfSwitches);
 
         // Load map
         if (!string.IsNullOrEmpty(saveData.CurrentMapId))
         {
             game.LoadMap(saveData.CurrentMapId);
         }
-
-        // TODO: Restore party, switches, variables
     }
 
     /// <summary>

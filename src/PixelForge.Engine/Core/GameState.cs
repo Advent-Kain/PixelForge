@@ -13,9 +13,13 @@ public class GameState
 
     public string? CurrentMapId { get; set; }
     public TimeSpan PlayTime { get; private set; }
+    public int PlayerX { get; set; }
+    public int PlayerY { get; set; }
     public int PartyGold { get; set; }
     public List<string> PartyMembers { get; } = new();
     public Dictionary<string, int> Inventory { get; } = new();
+    public Dictionary<string, int> Weapons { get; } = new();
+    public Dictionary<string, int> Armors { get; } = new();
 
     /// <summary>
     /// Update the game state.
@@ -42,6 +46,26 @@ public class GameState
     }
 
     /// <summary>
+    /// Export switches for serialization.
+    /// </summary>
+    public Dictionary<int, bool> ExportSwitches()
+    {
+        return new Dictionary<int, bool>(_switches);
+    }
+
+    /// <summary>
+    /// Import switches from serialized data.
+    /// </summary>
+    public void ImportSwitches(Dictionary<int, bool> switches)
+    {
+        _switches.Clear();
+        foreach (var pair in switches)
+        {
+            _switches[pair.Key] = pair.Value;
+        }
+    }
+
+    /// <summary>
     /// Get the value of a variable.
     /// </summary>
     public int GetVariable(int id)
@@ -55,6 +79,26 @@ public class GameState
     public void SetVariable(int id, int value)
     {
         _variables[id] = value;
+    }
+
+    /// <summary>
+    /// Export variables for serialization.
+    /// </summary>
+    public Dictionary<int, int> ExportVariables()
+    {
+        return new Dictionary<int, int>(_variables);
+    }
+
+    /// <summary>
+    /// Import variables from serialized data.
+    /// </summary>
+    public void ImportVariables(Dictionary<int, int> variables)
+    {
+        _variables.Clear();
+        foreach (var pair in variables)
+        {
+            _variables[pair.Key] = pair.Value;
+        }
     }
 
     /// <summary>
@@ -73,6 +117,26 @@ public class GameState
     {
         string key = $"{mapId}_{eventId}_{switchKey}";
         _selfSwitches[key] = value;
+    }
+
+    /// <summary>
+    /// Export self switches for serialization.
+    /// </summary>
+    public Dictionary<string, bool> ExportSelfSwitches()
+    {
+        return new Dictionary<string, bool>(_selfSwitches);
+    }
+
+    /// <summary>
+    /// Import self switches from serialized data.
+    /// </summary>
+    public void ImportSelfSwitches(Dictionary<string, bool> selfSwitches)
+    {
+        _selfSwitches.Clear();
+        foreach (var pair in selfSwitches)
+        {
+            _selfSwitches[pair.Key] = pair.Value;
+        }
     }
 
     /// <summary>
@@ -117,8 +181,12 @@ public class GameState
         _selfSwitches.Clear();
         PartyMembers.Clear();
         Inventory.Clear();
+        Weapons.Clear();
+        Armors.Clear();
         PartyGold = 0;
         PlayTime = TimeSpan.Zero;
         CurrentMapId = null;
+        PlayerX = 0;
+        PlayerY = 0;
     }
 }
