@@ -163,7 +163,8 @@ public class SaveLoadMenu : IMenu
                 var data = selectedSlot.Data;
                 spriteBatch.DrawString(font, $"Map: {data.CurrentMapId ?? "Unknown"}", detailsPos + new Vector2(0, 35), Color.White);
                 spriteBatch.DrawString(font, $"Gold: {data.Gold}", detailsPos + new Vector2(0, 65), Color.White);
-                spriteBatch.DrawString(font, $"Play Time: {data.PlayTime.Hours:D2}:{data.PlayTime.Minutes:D2}", detailsPos + new Vector2(0, 95), Color.White);
+                int totalHours = (int)data.PlayTime.TotalHours;
+                spriteBatch.DrawString(font, $"Play Time: {totalHours:D2}:{data.PlayTime.Minutes:D2}", detailsPos + new Vector2(0, 95), Color.White);
 
                 if (data.Party.Count > 0)
                 {
