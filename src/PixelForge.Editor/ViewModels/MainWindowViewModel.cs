@@ -50,6 +50,24 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void OpenDatabase()
+    {
+        // Open database editor window
+        var window = new Views.DatabaseEditorWindow();
+        window.Show();
+        StatusText = "Opened database editor";
+    }
+
+    [RelayCommand]
+    private void OpenScriptEditor()
+    {
+        // Open script editor window
+        var window = new Views.ScriptEditorWindow();
+        window.Show();
+        StatusText = "Opened script editor";
+    }
+
+    [RelayCommand]
     private void Exit()
     {
         // Application exit handled by window

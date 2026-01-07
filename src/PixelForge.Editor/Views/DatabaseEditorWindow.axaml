@@ -1,0 +1,288 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:PixelForge.Editor.ViewModels"
+        x:Class="PixelForge.Editor.Views.DatabaseEditorWindow"
+        x:DataType="vm:DatabaseEditorViewModel"
+        Title="Database Editor"
+        Width="1200"
+        Height="800">
+
+    <Design.DataContext>
+        <vm:DatabaseEditorViewModel/>
+    </Design.DataContext>
+
+    <DockPanel>
+        <!-- Toolbar -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="#2D2D2D" Spacing="5" Margin="5">
+            <Button Content="Save" Command="{Binding SaveCommand}" />
+            <Button Content="Load" Command="{Binding LoadCommand}" />
+        </StackPanel>
+
+        <!-- Tab Control -->
+        <TabControl SelectedIndex="{Binding SelectedTab}">
+            <!-- Actors Tab -->
+            <TabItem Header="Actors">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="250" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Actor List -->
+                    <DockPanel Grid.Column="0">
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="5">
+                            <Button Content="New" Command="{Binding NewActorCommand}" />
+                            <Button Content="Delete" Command="{Binding DeleteActorCommand}" Margin="5,0,0,0" />
+                        </StackPanel>
+
+                        <ListBox ItemsSource="{Binding Actors}"
+                                 SelectedItem="{Binding SelectedActor}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+
+                    <!-- Actor Editor -->
+                    <ScrollViewer Grid.Column="1" Padding="10">
+                        <StackPanel Spacing="10" DataContext="{Binding SelectedActor}">
+                            <TextBlock Text="Actor Properties" FontWeight="Bold" FontSize="16" />
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Name:" />
+                                <TextBox Text="{Binding Name}" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Nickname:" />
+                                <TextBox Text="{Binding Nickname}" />
+                            </StackPanel>
+
+                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="5">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Initial Level:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding InitialLevel}" Minimum="1" Maximum="99" />
+
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Max Level:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding MaxLevel}" Minimum="1" Maximum="99" />
+                            </Grid>
+
+                            <TextBlock Text="Base Stats" FontWeight="Bold" Margin="0,10,0,0" />
+                            <Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="5" DataContext="{Binding BaseStats}">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Max HP:" />
+                                <NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding MaxHp}" Minimum="1" Maximum="9999" />
+
+                                <TextBlock Grid.Row="0" Grid.Column="2" Text="Max MP:" />
+                                <NumericUpDown Grid.Row="0" Grid.Column="3" Value="{Binding MaxMp}" Minimum="0" Maximum="9999" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Attack:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding Attack}" Minimum="0" Maximum="999" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="2" Text="Defense:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="3" Value="{Binding Defense}" Minimum="0" Maximum="999" />
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="M. Attack:" />
+                                <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding MagicAttack}" Minimum="0" Maximum="999" />
+
+                                <TextBlock Grid.Row="2" Grid.Column="2" Text="M. Defense:" />
+                                <NumericUpDown Grid.Row="2" Grid.Column="3" Value="{Binding MagicDefense}" Minimum="0" Maximum="999" />
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Agility:" />
+                                <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding Agility}" Minimum="0" Maximum="999" />
+
+                                <TextBlock Grid.Row="3" Grid.Column="2" Text="Luck:" />
+                                <NumericUpDown Grid.Row="3" Grid.Column="3" Value="{Binding Luck}" Minimum="0" Maximum="999" />
+                            </Grid>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+
+            <!-- Skills Tab -->
+            <TabItem Header="Skills">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="250" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <DockPanel Grid.Column="0">
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="5">
+                            <Button Content="New" Command="{Binding NewSkillCommand}" />
+                            <Button Content="Delete" Command="{Binding DeleteSkillCommand}" Margin="5,0,0,0" />
+                        </StackPanel>
+
+                        <ListBox ItemsSource="{Binding Skills}"
+                                 SelectedItem="{Binding SelectedSkill}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+
+                    <ScrollViewer Grid.Column="1" Padding="10">
+                        <StackPanel Spacing="10" DataContext="{Binding SelectedSkill}">
+                            <TextBlock Text="Skill Properties" FontWeight="Bold" FontSize="16" />
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Name:" />
+                                <TextBox Text="{Binding Name}" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Description:" />
+                                <TextBox Text="{Binding Description}" TextWrapping="Wrap" Height="60" />
+                            </StackPanel>
+
+                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10" RowDefinitions="Auto,Auto" RowSpacing="5">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="MP Cost:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding MpCost}" Minimum="0" Maximum="999" />
+
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="TP Cost:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding TpCost}" Minimum="0" Maximum="100" />
+
+                                <TextBlock Grid.Row="0" Grid.Column="2" Text="AP Cost:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="2" Value="{Binding ApCost}" Minimum="0" Maximum="10" />
+                            </Grid>
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Skill Type:" />
+                                <ComboBox SelectedItem="{Binding SkillType}" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Scope:" />
+                                <ComboBox SelectedItem="{Binding Scope}" />
+                            </StackPanel>
+
+                            <TextBlock Text="Damage Formula" FontWeight="Bold" Margin="0,10,0,0" />
+                            <StackPanel Spacing="5" DataContext="{Binding Damage}">
+                                <TextBlock Text="Formula:" />
+                                <TextBox Text="{Binding Formula}" />
+
+                                <TextBlock Text="Example: a.atk * 4 - b.def * 2" FontSize="10" Foreground="Gray" />
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+
+            <!-- Items Tab -->
+            <TabItem Header="Items">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="250" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <DockPanel Grid.Column="0">
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="5">
+                            <Button Content="New" Command="{Binding NewItemCommand}" />
+                            <Button Content="Delete" Command="{Binding DeleteItemCommand}" Margin="5,0,0,0" />
+                        </StackPanel>
+
+                        <ListBox ItemsSource="{Binding Items}"
+                                 SelectedItem="{Binding SelectedItem}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+
+                    <ScrollViewer Grid.Column="1" Padding="10">
+                        <StackPanel Spacing="10" DataContext="{Binding SelectedItem}">
+                            <TextBlock Text="Item Properties" FontWeight="Bold" FontSize="16" />
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Name:" />
+                                <TextBox Text="{Binding Name}" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Description:" />
+                                <TextBox Text="{Binding Description}" TextWrapping="Wrap" Height="60" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Price:" />
+                                <NumericUpDown Value="{Binding Price}" Minimum="0" Maximum="999999" />
+                            </StackPanel>
+
+                            <CheckBox Content="Consumable" IsChecked="{Binding Consumable}" />
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Scope:" />
+                                <ComboBox SelectedItem="{Binding Scope}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+
+            <!-- Enemies Tab -->
+            <TabItem Header="Enemies">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="250" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <DockPanel Grid.Column="0">
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="5">
+                            <Button Content="New" Command="{Binding NewEnemyCommand}" />
+                            <Button Content="Delete" Command="{Binding DeleteEnemyCommand}" Margin="5,0,0,0" />
+                        </StackPanel>
+
+                        <ListBox ItemsSource="{Binding Enemies}"
+                                 SelectedItem="{Binding SelectedEnemy}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+
+                    <ScrollViewer Grid.Column="1" Padding="10">
+                        <StackPanel Spacing="10" DataContext="{Binding SelectedEnemy}">
+                            <TextBlock Text="Enemy Properties" FontWeight="Bold" FontSize="16" />
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Name:" />
+                                <TextBox Text="{Binding Name}" />
+                            </StackPanel>
+
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" RowDefinitions="Auto,Auto" RowSpacing="5">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Experience:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding Exp}" Minimum="0" Maximum="9999999" />
+
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Gold:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding Gold}" Minimum="0" Maximum="9999999" />
+                            </Grid>
+
+                            <TextBlock Text="Stats" FontWeight="Bold" Margin="0,10,0,0" />
+                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="5" DataContext="{Binding Stats}">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Max HP:" />
+                                <NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding MaxHp}" Minimum="1" Maximum="9999999" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Attack:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding Attack}" Minimum="0" Maximum="9999" />
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Defense:" />
+                                <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding Defense}" Minimum="0" Maximum="9999" />
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Agility:" />
+                                <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding Agility}" Minimum="0" Maximum="9999" />
+                            </Grid>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>

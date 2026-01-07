@@ -1,0 +1,74 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:PixelForge.Editor.ViewModels"
+        x:Class="PixelForge.Editor.Views.ScriptEditorWindow"
+        x:DataType="vm:ScriptEditorViewModel"
+        Title="Script Editor"
+        Width="1000"
+        Height="700">
+
+    <Design.DataContext>
+        <vm:ScriptEditorViewModel/>
+    </Design.DataContext>
+
+    <DockPanel>
+        <!-- Toolbar -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="#2D2D2D" Spacing="5" Margin="5">
+            <Button Content="New" Command="{Binding NewScriptCommand}" />
+            <Button Content="Save" Command="{Binding SaveCommand}" />
+            <Button Content="Delete" Command="{Binding DeleteCommand}" />
+            <Separator />
+            <Button Content="Compile" Command="{Binding CompileCommand}" />
+        </StackPanel>
+
+        <!-- Status Bar -->
+        <Border DockPanel.Dock="Bottom" Background="#2D2D2D" Padding="5">
+            <TextBlock Text="{Binding StatusMessage}" />
+        </Border>
+
+        <!-- Main Content -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200" />
+                <ColumnDefinition Width="4" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Script List -->
+            <DockPanel Grid.Column="0" Background="#1E1E1E">
+                <TextBlock DockPanel.Dock="Top"
+                         Text="Scripts"
+                         FontWeight="Bold"
+                         Margin="5" />
+
+                <ListBox ItemsSource="{Binding Scripts}"
+                         SelectedItem="{Binding SelectedScript}"
+                         Background="Transparent">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Name}" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+
+            <GridSplitter Grid.Column="1" Background="#3E3E42" ResizeDirection="Columns" />
+
+            <!-- Editor -->
+            <Border Grid.Column="2" Background="#1E1E1E" Padding="5">
+                <ScrollViewer>
+                    <TextBox Text="{Binding ScriptContent}"
+                             AcceptsReturn="True"
+                             FontFamily="Consolas,Courier New,monospace"
+                             FontSize="12"
+                             Background="#1E1E1E"
+                             Foreground="#D4D4D4"
+                             BorderThickness="0"
+                             TextWrapping="NoWrap"
+                             VerticalScrollBarVisibility="Visible"
+                             HorizontalScrollBarVisibility="Auto" />
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>
