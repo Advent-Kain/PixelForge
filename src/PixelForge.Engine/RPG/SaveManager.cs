@@ -195,6 +195,10 @@ public class SaveManager
     {
         var gameState = game.GetGameState();
 
+        // Clear state that should be fully rehydrated from save data
+        gameState.Inventory.Clear();
+        gameState.PartyMembers.Clear();
+
         // Apply basic state
         gameState.CurrentMapId = saveData.CurrentMapId;
         gameState.PlayerX = saveData.PlayerX;
