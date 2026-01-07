@@ -1,0 +1,121 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:PixelForge.Editor.ViewModels"
+        xmlns:views="using:PixelForge.Editor.Views"
+        x:Class="PixelForge.Editor.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/icon.ico"
+        Title="PixelForge - RPG Game Engine"
+        Width="1400"
+        Height="900">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <DockPanel>
+        <!-- Menu Bar -->
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Header="_New Project" Command="{Binding NewProjectCommand}" />
+                <MenuItem Header="_Open Project..." Command="{Binding OpenProjectCommand}" />
+                <MenuItem Header="_Save Project" Command="{Binding SaveProjectCommand}" />
+                <Separator />
+                <MenuItem Header="E_xit" Command="{Binding ExitCommand}" />
+            </MenuItem>
+            <MenuItem Header="_Edit">
+                <MenuItem Header="_Undo" />
+                <MenuItem Header="_Redo" />
+                <Separator />
+                <MenuItem Header="Cu_t" />
+                <MenuItem Header="_Copy" />
+                <MenuItem Header="_Paste" />
+            </MenuItem>
+            <MenuItem Header="_Tools">
+                <MenuItem Header="_Database..." />
+                <MenuItem Header="_Script Editor..." />
+                <MenuItem Header="_Resource Manager..." />
+                <MenuItem Header="_Plugin Manager..." />
+            </MenuItem>
+            <MenuItem Header="_Game">
+                <MenuItem Header="_Test Play" />
+                <MenuItem Header="_Deploy..." />
+            </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem Header="_Documentation" />
+                <MenuItem Header="_About" />
+            </MenuItem>
+        </Menu>
+
+        <!-- Toolbar -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="#2D2D2D" Spacing="5" Margin="5">
+            <Button Content="New" Command="{Binding NewProjectCommand}" />
+            <Button Content="Open" Command="{Binding OpenProjectCommand}" />
+            <Button Content="Save" Command="{Binding SaveProjectCommand}" />
+            <Separator />
+            <Button Content="Test Play" />
+        </StackPanel>
+
+        <!-- Status Bar -->
+        <Border DockPanel.Dock="Bottom" Background="#2D2D2D" Padding="5">
+            <TextBlock Text="{Binding StatusText}" />
+        </Border>
+
+        <!-- Main Content -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="250" />
+                <ColumnDefinition Width="4" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="4" />
+                <ColumnDefinition Width="300" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Panel - Project Tree -->
+            <Border Grid.Column="0" Background="#1E1E1E" Padding="5">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top"
+                             Text="Project"
+                             FontWeight="Bold"
+                             Margin="0,0,0,10" />
+                    <TreeView>
+                        <TreeViewItem Header="Maps" IsExpanded="True">
+                            <TreeViewItem Header="Map001" />
+                            <TreeViewItem Header="Map002" />
+                        </TreeViewItem>
+                        <TreeViewItem Header="Database" />
+                        <TreeViewItem Header="Scripts" />
+                        <TreeViewItem Header="Assets" />
+                    </TreeView>
+                </DockPanel>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Background="#3E3E42" ResizeDirection="Columns" />
+
+            <!-- Center Panel - Map Editor -->
+            <Border Grid.Column="2" Background="#252526">
+                <views:MapEditorView DataContext="{Binding MapEditor}" />
+            </Border>
+
+            <GridSplitter Grid.Column="3" Background="#3E3E42" ResizeDirection="Columns" />
+
+            <!-- Right Panel - Properties/Tools -->
+            <Border Grid.Column="4" Background="#1E1E1E" Padding="5">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top"
+                             Text="Properties"
+                             FontWeight="Bold"
+                             Margin="0,0,0,10" />
+                    <ScrollViewer>
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="Map Properties" FontWeight="SemiBold" />
+                            <TextBlock Text="Width: 20" />
+                            <TextBlock Text="Height: 15" />
+                            <TextBlock Text="Tile Size: 48x48" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>

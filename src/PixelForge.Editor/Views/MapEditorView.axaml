@@ -1,0 +1,68 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:PixelForge.Editor.ViewModels"
+             x:Class="PixelForge.Editor.Views.MapEditorView"
+             x:DataType="vm:MapEditorViewModel">
+
+    <Design.DataContext>
+        <vm:MapEditorViewModel/>
+    </Design.DataContext>
+
+    <DockPanel>
+        <!-- Toolbar -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="#2D2D2D" Spacing="5" Margin="5">
+            <Button Content="New Map" Command="{Binding NewMapCommand}" />
+            <Separator />
+            <Button Content="+" Command="{Binding ZoomInCommand}" />
+            <TextBlock Text="{Binding ZoomLevel, StringFormat='{}{0:P0}'}" VerticalAlignment="Center" Margin="5,0" />
+            <Button Content="-" Command="{Binding ZoomOutCommand}" />
+            <Separator />
+            <ToggleButton Content="Grid" IsChecked="{Binding ShowGrid}" />
+            <ToggleButton Content="Events" IsChecked="{Binding ShowEvents}" />
+        </StackPanel>
+
+        <!-- Layer Panel -->
+        <Border DockPanel.Dock="Bottom" Background="#2D2D2D" Padding="5" Height="150">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Layers" FontWeight="Bold" Margin="0,0,0,5" />
+                <StackPanel DockPanel.Dock="Right" Spacing="5" Margin="5,0,0,0">
+                    <Button Content="+" Command="{Binding AddLayerCommand}" />
+                    <Button Content="-" Command="{Binding RemoveLayerCommand}" />
+                </StackPanel>
+                <ListBox ItemsSource="{Binding Layers}"
+                         SelectedItem="{Binding SelectedLayer}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <CheckBox IsChecked="{Binding Visible}" />
+                                <TextBlock Text="{Binding Name}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- Map Canvas -->
+        <Border Background="#252526" ClipToBounds="True">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                         VerticalScrollBarVisibility="Auto">
+                <Canvas Name="MapCanvas"
+                        Width="960"
+                        Height="720"
+                        Background="#1A1A1A">
+                    <!-- Map rendering will be done via custom control -->
+                    <TextBlock Canvas.Left="10"
+                             Canvas.Top="10"
+                             Text="Map Editor Canvas"
+                             Foreground="Gray"
+                             FontSize="24" />
+                    <TextBlock Canvas.Left="10"
+                             Canvas.Top="40"
+                             Text="(Custom map rendering control will be implemented here)"
+                             Foreground="Gray" />
+                </Canvas>
+            </ScrollViewer>
+        </Border>
+    </DockPanel>
+</UserControl>
