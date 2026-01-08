@@ -22,8 +22,6 @@ public class GameEngine : Game, IGameContext
     private readonly PartyManager _partyManager;
     private readonly InventoryManager _inventoryManager;
     private readonly GameDatabase _database;
-    private readonly EventProcessor _eventProcessor;
-    private readonly AnimationPlayer _animationPlayer;
 
     public GameEngine()
     {
@@ -34,9 +32,7 @@ public class GameEngine : Game, IGameContext
         _gameState = new GameState();
         _inputManager = new InputManager();
         _resourceManager = new ResourceManager(Content);
-        _database = new GameDatabase();
-        _eventProcessor = new EventProcessor(this);
-        _mapManager = new MapManager(_resourceManager, _gameState, _database, _eventProcessor);
+        _mapManager = new MapManager(this);
         _partyManager = new PartyManager();
         _inventoryManager = new InventoryManager();
         _animationPlayer = new AnimationPlayer(_resourceManager, _database);
