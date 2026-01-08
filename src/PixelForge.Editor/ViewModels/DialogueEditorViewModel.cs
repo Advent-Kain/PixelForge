@@ -37,6 +37,8 @@ public partial class DialogueEditorViewModel : ObservableObject
     [ObservableProperty]
     private string _newTreeName = string.Empty;
 
+    public IReadOnlyList<ConditionType> ConditionTypes { get; } = Enum.GetValues<ConditionType>();
+
     public ICommand NewTreeCommand { get; }
     public ICommand LoadTreeCommand { get; }
     public ICommand SaveTreeCommand { get; }
@@ -306,7 +308,7 @@ public partial class DialogueNodeViewModel : ObservableObject
     private ObservableCollection<DialogueChoiceViewModel> _choices = new();
 
     [ObservableProperty]
-    private List<string> _conditions = new();
+    private List<DialogueCondition> _conditions = new();
 
     [ObservableProperty]
     private List<DialogueAction> _actions = new();
@@ -351,6 +353,25 @@ public partial class DialogueNodeViewModel : ObservableObject
             Actions = Actions
         };
     }
+
+    [RelayCommand]
+    private void AddCondition()
+    {
+        var updated = Conditions?.ToList() ?? new List<DialogueCondition>();
+        updated.Add(new DialogueCondition { Type = ConditionType.Switch });
+        Conditions = updated;
+    }
+
+    [RelayCommand]
+    private void RemoveCondition(DialogueCondition condition)
+    {
+        if (condition == null)
+            return;
+
+        var updated = Conditions?.ToList() ?? new List<DialogueCondition>();
+        updated.Remove(condition);
+        Conditions = updated;
+    }
 }
 
 /// <summary>
@@ -371,7 +392,7 @@ public partial class DialogueChoiceViewModel : ObservableObject
     private string? _nextNodeId;
 
     [ObservableProperty]
-    private List<string> _conditions = new();
+    private List<DialogueCondition> _conditions = new();
 
     public static DialogueChoiceViewModel FromDialogueChoice(DialogueChoice choice)
     {
