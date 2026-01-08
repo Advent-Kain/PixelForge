@@ -14,7 +14,6 @@ public class MiniMap
     private readonly int _margin = 10;
     private Vector2 _playerPosition;
     private MapData? _currentMap;
-    private Texture2D? _mapTexture;
     private bool _visible = true;
 
     public bool Visible

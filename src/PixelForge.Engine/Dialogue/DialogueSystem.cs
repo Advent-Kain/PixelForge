@@ -179,7 +179,7 @@ public class DialogueManager
             return null;
 
         // Check for localized string
-        if (!string.IsNullOrEmpty(_currentNode.StringKey) && _strings.TryGetValue(_currentNode.StringKey, out string localizedText))
+        if (!string.IsNullOrEmpty(_currentNode.StringKey) && _strings.TryGetValue(_currentNode.StringKey, out string? localizedText))
         {
             return localizedText;
         }

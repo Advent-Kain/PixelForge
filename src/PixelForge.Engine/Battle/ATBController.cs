@@ -11,7 +11,7 @@ public class ATBController : IBattleController
     private readonly GameEngine _game;
     private readonly BattleState _state;
     private readonly float _atbSpeed = 1.0f;
-    private readonly Queue<Battler> _readyQueue = new();
+    private readonly List<Battler> _readyQueue = new();
 
     public ATBController(GameEngine game, BattleState state)
     {
@@ -89,7 +89,7 @@ public class ATBController : IBattleController
         {
             if (battler.ATBGauge >= 1.0f && !_readyQueue.Contains(battler))
             {
-                _readyQueue.Enqueue(battler);
+                _readyQueue.Add(battler);
             }
         }
     }

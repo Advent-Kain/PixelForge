@@ -163,7 +163,7 @@ public class QuestLogMenu : IMenu
             // Rewards
             if (_currentTab == QuestTab.Active)
             {
-                Vector2 rewardPos = detailsRect + new Vector2(10, detailsRect.Height - 120);
+                Vector2 rewardPos = new Vector2(detailsRect.X + 10, detailsRect.Y + detailsRect.Height - 120);
                 spriteBatch.DrawString(font, "Rewards:", rewardPos, Color.Cyan);
 
                 var rewards = selectedQuest.QuestData.Rewards;
