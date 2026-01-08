@@ -84,6 +84,26 @@ public class InputNumberHandler : IEventCommandHandler
 }
 
 /// <summary>
+/// Common Event command handler (Code: 117).
+/// </summary>
+public class CommonEventHandler : IEventCommandHandler
+{
+    public void Execute(EventContext context)
+    {
+        var commonEventId = context.Command.Parameters.Count > 0
+            ? context.Command.Parameters[0]?.ToString() ?? string.Empty
+            : string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(commonEventId))
+        {
+            context.Processor.ExecuteCommonEvent(commonEventId);
+        }
+    }
+
+    public bool IsComplete() => true;
+}
+
+/// <summary>
 /// Conditional Branch command handler (Code: 111).
 /// </summary>
 public class ConditionalBranchHandler : IEventCommandHandler
@@ -483,6 +503,26 @@ public class WaitHandler : IEventCommandHandler
         {
             context.Processor.WaitFor(TimeSpan.FromMilliseconds(durationFrames * (1000.0 / 60.0)));
         }
+/// Show Animation command handler (Code: 212).
+/// </summary>
+public class ShowAnimationHandler : IEventCommandHandler
+{
+    public void Execute(EventContext context)
+    {
+        var animationId = context.Command.Parameters.Count > 0
+            ? context.Command.Parameters[0]?.ToString() ?? string.Empty
+            : string.Empty;
+        var x = context.Command.Parameters.Count > 1
+            ? Convert.ToSingle(context.Command.Parameters[1])
+            : 0f;
+        var y = context.Command.Parameters.Count > 2
+            ? Convert.ToSingle(context.Command.Parameters[2])
+            : 0f;
+
+        if (string.IsNullOrWhiteSpace(animationId))
+            return;
+
+        context.Game.PlayAnimation(animationId, new Microsoft.Xna.Framework.Vector2(x, y));
     }
 
     public bool IsComplete() => true;
