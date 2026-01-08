@@ -100,7 +100,7 @@ public partial class DialogueEditorViewModel : ObservableObject
         };
 
         tree.Nodes.Add(rootNode);
-        tree.RootNodeId = rootNode.Id;
+        tree.StartNodeId = rootNode.Id;
 
         CurrentTree = tree;
         LoadNodesFromTree();
