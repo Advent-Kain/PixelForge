@@ -29,6 +29,9 @@ public class DialogueNode
     [JsonPropertyName("id")]
     public string Id { get; set; } = Guid.NewGuid().ToString();
 
+    [JsonPropertyName("nodeType")]
+    public NodeType NodeType { get; set; }
+
     [JsonPropertyName("speakerName")]
     public string? SpeakerName { get; set; }
 
@@ -94,6 +97,13 @@ public class DialogueAction
 
     [JsonPropertyName("value")]
     public string Value { get; set; } = string.Empty;
+}
+
+public enum NodeType
+{
+    Standard,
+    Choice,
+    End
 }
 
 public enum ConditionType
