@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using PixelForge.Engine.Graphics;
 using PixelForge.Engine.Map;
+using PixelForge.Engine.RPG;
 
 namespace PixelForge.Engine.Core;
 
@@ -17,6 +18,8 @@ public class GameEngine : Game
     private readonly InputManager _inputManager;
     private readonly MapManager _mapManager;
     private readonly ResourceManager _resourceManager;
+    private readonly PartyManager _partyManager;
+    private readonly GameDatabase _database;
 
     public GameEngine()
     {
@@ -28,6 +31,8 @@ public class GameEngine : Game
         _inputManager = new InputManager();
         _resourceManager = new ResourceManager(Content);
         _mapManager = new MapManager(_resourceManager);
+        _partyManager = new PartyManager();
+        _database = new GameDatabase();
 
         // Default window size
         _graphics.PreferredBackBufferWidth = 1280;
@@ -132,4 +137,14 @@ public class GameEngine : Game
     /// Get the map manager.
     /// </summary>
     public MapManager GetMapManager() => _mapManager;
+
+    /// <summary>
+    /// Get the party manager.
+    /// </summary>
+    public PartyManager GetPartyManager() => _partyManager;
+
+    /// <summary>
+    /// Get the game database.
+    /// </summary>
+    public GameDatabase GetDatabase() => _database;
 }
