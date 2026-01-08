@@ -21,6 +21,7 @@ public class GameEngine : Game
     private readonly PartyManager _partyManager;
     private readonly InventoryManager _inventoryManager;
     private readonly GameDatabase _database;
+    private readonly InventoryManager _inventoryManager;
 
     public GameEngine()
     {
@@ -147,7 +148,7 @@ public class GameEngine : Game
     public PartyManager GetPartyManager() => _partyManager;
 
     /// <summary>
-    /// Get the game database.
+    /// Get the database.
     /// </summary>
     public GameDatabase GetDatabase() => _database;
 

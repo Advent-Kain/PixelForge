@@ -11,6 +11,7 @@ public class GameActor
     public string ActorId { get; set; } = string.Empty;
     public Actor ActorData { get; set; } = null!;
     public CharacterClass? ClassData { get; set; }
+    public GameDatabase? Database { get; set; }
 
     // Current state
     public int Level { get; set; } = 1;
@@ -54,9 +55,15 @@ public class GameActor
         };
 
         // Apply equipment bonuses
-        foreach (var itemId in EquippedItems.Values.Where(id => !string.IsNullOrEmpty(id)))
+        foreach (var equippedItem in EquippedItems.Where(pair => !string.IsNullOrEmpty(pair.Value)))
         {
-            // TODO: Load equipment and apply stats
+            var equipment = ResolveEquipment(equippedItem.Key, equippedItem.Value!);
+            if (equipment == null || !IsSlotCompatible(equippedItem.Key, equipment) || !CanEquip(equipment))
+            {
+                continue;
+            }
+
+            ApplyEquipmentStats(stats, equipment);
         }
 
         // Apply class bonuses
@@ -137,6 +144,33 @@ public class GameActor
         if (!EquippedItems.ContainsKey(slot))
             return false;
 
+        if (string.IsNullOrWhiteSpace(itemId))
+        {
+            EquippedItems[slot] = null;
+            return true;
+        }
+
+        if (Database == null)
+        {
+            return false;
+        }
+
+        var equipment = ResolveEquipment(slot, itemId);
+        if (equipment == null)
+        {
+            return false;
+        }
+
+        if (!IsSlotCompatible(slot, equipment))
+        {
+            return false;
+        }
+
+        if (!CanEquip(equipment))
+        {
+            return false;
+        }
+
         EquippedItems[slot] = itemId;
         return true;
     }
@@ -167,6 +201,51 @@ public class GameActor
         }
 
         return true;
+    }
+
+    private Equipment? ResolveEquipment(string slot, string itemId)
+    {
+        if (Database == null)
+        {
+            return null;
+        }
+
+        return IsWeaponSlot(slot) ? Database.GetWeapon(itemId) : Database.GetArmor(itemId);
+    }
+
+    private static bool IsWeaponSlot(string slot)
+    {
+        return string.Equals(slot, "weapon", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsSlotCompatible(string slot, Equipment equipment)
+    {
+        if (IsWeaponSlot(slot))
+        {
+            return equipment.EquipType == EquipType.Weapon;
+        }
+
+        return slot switch
+        {
+            "shield" => equipment.EquipType == EquipType.Shield,
+            "head" => equipment.EquipType == EquipType.Head,
+            "body" => equipment.EquipType == EquipType.Body,
+            "accessory1" => equipment.EquipType == EquipType.Accessory,
+            "accessory2" => equipment.EquipType == EquipType.Accessory,
+            _ => false
+        };
+    }
+
+    private static void ApplyEquipmentStats(ActorStats stats, Equipment equipment)
+    {
+        stats.MaxHp += equipment.Stats.MaxHp;
+        stats.MaxMp += equipment.Stats.MaxMp;
+        stats.Attack += equipment.Stats.Attack;
+        stats.Defense += equipment.Stats.Defense;
+        stats.MagicAttack += equipment.Stats.MagicAttack;
+        stats.MagicDefense += equipment.Stats.MagicDefense;
+        stats.Agility += equipment.Stats.Agility;
+        stats.Luck += equipment.Stats.Luck;
     }
 
     /// <summary>
