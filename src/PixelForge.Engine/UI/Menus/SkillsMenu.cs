@@ -2,6 +2,8 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using PixelForge.Engine.Core;
+using PixelForge.Engine.RPG;
+using PixelForge.Shared.Models.Database;
 
 namespace PixelForge.Engine.UI;
 
@@ -37,23 +39,35 @@ public class SkillsMenu : IMenu
     public void Update(GameTime gameTime)
     {
         var keyboard = Keyboard.GetState();
+        var party = _game.GetPartyManager().Party;
 
         // Navigate actors (Left/Right)
-        if (keyboard.IsKeyDown(Keys.Right) && _previousKeyboard.IsKeyUp(Keys.Right))
+        if (party.Count > 0 && keyboard.IsKeyDown(Keys.Right) && _previousKeyboard.IsKeyUp(Keys.Right))
         {
-            _selectedActorIndex = (_selectedActorIndex + 1) % 4;
+            _selectedActorIndex = (_selectedActorIndex + 1) % party.Count;
             _selectedSkillIndex = 0;
             _scrollOffset = 0;
         }
-        else if (keyboard.IsKeyDown(Keys.Left) && _previousKeyboard.IsKeyUp(Keys.Left))
+        else if (party.Count > 0 && keyboard.IsKeyDown(Keys.Left) && _previousKeyboard.IsKeyUp(Keys.Left))
         {
-            _selectedActorIndex = (_selectedActorIndex - 1 + 4) % 4;
+            _selectedActorIndex = (_selectedActorIndex - 1 + party.Count) % party.Count;
             _selectedSkillIndex = 0;
             _scrollOffset = 0;
         }
 
         // Navigate skills (Up/Down)
         int skillCount = GetSkillCount();
+        if (skillCount == 0)
+        {
+            _selectedSkillIndex = 0;
+            _scrollOffset = 0;
+        }
+        else if (_selectedSkillIndex >= skillCount)
+        {
+            _selectedSkillIndex = skillCount - 1;
+            _scrollOffset = Math.Min(_scrollOffset, Math.Max(0, skillCount - _visibleSkills));
+        }
+
         if (skillCount > 0)
         {
             if (keyboard.IsKeyDown(Keys.Down) && _previousKeyboard.IsKeyUp(Keys.Down))
@@ -101,22 +115,40 @@ public class SkillsMenu : IMenu
         Vector2 titlePos = new Vector2(windowRect.X + 20, windowRect.Y + 10);
         spriteBatch.DrawString(font, "Skills", titlePos, Color.White);
 
-        // Draw actor name and MP
-        string actorInfo = $"Actor {_selectedActorIndex + 1} - MP: 50/50"; // TODO: Get from party
+        var actor = GetSelectedActor();
+        if (actor == null)
+        {
+            Vector2 emptyPos = new Vector2(windowRect.X + 20, windowRect.Y + 50);
+            spriteBatch.DrawString(font, "No party members.", emptyPos, Color.Gray);
+            return;
+        }
+
+        var actorStats = actor.GetCurrentStats();
+        int maxHp = Math.Max(1, actorStats.MaxHp);
+        int maxMp = Math.Max(1, actorStats.MaxMp);
+        int currentHp = Math.Clamp(actor.CurrentHp, 0, maxHp);
+        int currentMp = Math.Clamp(actor.CurrentMp, 0, maxMp);
+        string actorName = actor.ActorData?.Name ?? actor.ActorId;
+        string className = actor.ClassData?.Name ?? "Unknown Class";
+
+        // Draw actor name/class/level and HP/MP
         Vector2 infoPos = new Vector2(windowRect.X + 20, windowRect.Y + 50);
-        spriteBatch.DrawString(font, actorInfo, infoPos, Color.Cyan);
+        spriteBatch.DrawString(font, $"{actorName} - {className} (Lv {actor.Level})", infoPos, Color.Cyan);
+        spriteBatch.DrawString(font, $"HP: {currentHp}/{maxHp}   MP: {currentMp}/{maxMp}", infoPos + new Vector2(0, 25), Color.White);
 
         // Draw skills list
         int skillCount = GetSkillCount();
         if (skillCount == 0)
         {
-            Vector2 emptyPos = new Vector2(windowRect.X + 40, windowRect.Y + 100);
+            Vector2 emptyPos = new Vector2(windowRect.X + 40, windowRect.Y + 110);
             spriteBatch.DrawString(font, "No skills learned", emptyPos, Color.Gray);
         }
         else
         {
             int startIndex = _scrollOffset;
             int endIndex = Math.Min(_scrollOffset + _visibleSkills, skillCount);
+            var skillIds = GetSelectedSkillIds();
+            var database = _game.GetDatabase();
 
             for (int i = startIndex; i < endIndex; i++)
             {
@@ -133,7 +165,11 @@ public class SkillsMenu : IMenu
                     spriteBatch.DrawString(font, ">", pos - new Vector2(20, 0), Color.Yellow);
                 }
 
-                string skillText = $"Skill {i + 1} - MP: 10"; // TODO: Load actual skill data
+                string skillId = skillIds[i];
+                var skill = database.GetSkill(skillId);
+                string skillName = skill?.Name ?? "Unknown Skill";
+                int mpCost = skill?.MpCost ?? 0;
+                string skillText = $"{skillName} - MP: {mpCost}";
                 spriteBatch.DrawString(font, skillText, pos, color);
             }
         }
@@ -141,6 +177,7 @@ public class SkillsMenu : IMenu
         // Draw skill description
         if (_selectedSkillIndex >= 0 && _selectedSkillIndex < skillCount)
         {
+            var skill = GetSelectedSkill();
             var descRect = new Rectangle(
                 windowRect.X + 20,
                 windowRect.Bottom - 120,
@@ -152,20 +189,23 @@ public class SkillsMenu : IMenu
             DrawBorder(spriteBatch, pixelTexture, descRect, Color.Gray, 1);
 
             Vector2 descPos = new Vector2(descRect.X + 10, descRect.Y + 10);
-            string description = "A powerful skill that deals damage to enemies.";
+            string description = skill?.Description ?? "No description available.";
             spriteBatch.DrawString(font, description, descPos, Color.White);
 
             // Draw skill properties
             Vector2 propsPos = new Vector2(descRect.X + 10, descRect.Y + 45);
-            spriteBatch.DrawString(font, "Type: Magic | Element: Fire", propsPos, Color.Gray);
-            spriteBatch.DrawString(font, "Target: One Enemy", propsPos + new Vector2(0, 25), Color.Gray);
+            string typeText = skill?.SkillType.ToString() ?? "Unknown";
+            string elementText = string.IsNullOrWhiteSpace(skill?.Damage?.Element) ? "None" : skill.Damage.Element;
+            string scopeText = skill?.Scope.ToString() ?? "Unknown";
+            spriteBatch.DrawString(font, $"Type: {typeText} | Element: {elementText}", propsPos, Color.Gray);
+            spriteBatch.DrawString(font, $"Target: {scopeText}", propsPos + new Vector2(0, 25), Color.Gray);
         }
     }
 
     private int GetSkillCount()
     {
-        // TODO: Get from actor's learned skills
-        return 5; // Placeholder
+        var actor = GetSelectedActor();
+        return actor?.LearnedSkills.Count ?? 0;
     }
 
     private void UseSelectedSkill()
@@ -179,5 +219,30 @@ public class SkillsMenu : IMenu
         spriteBatch.Draw(texture, new Rectangle(rect.X, rect.Bottom - thickness, rect.Width, thickness), color);
         spriteBatch.Draw(texture, new Rectangle(rect.X, rect.Y, thickness, rect.Height), color);
         spriteBatch.Draw(texture, new Rectangle(rect.Right - thickness, rect.Y, thickness, rect.Height), color);
+    }
+
+    private GameActor? GetSelectedActor()
+    {
+        var party = _game.GetPartyManager().Party;
+        if (party.Count == 0)
+            return null;
+
+        _selectedActorIndex = Math.Clamp(_selectedActorIndex, 0, party.Count - 1);
+        return party[_selectedActorIndex];
+    }
+
+    private List<string> GetSelectedSkillIds()
+    {
+        var actor = GetSelectedActor();
+        return actor?.LearnedSkills ?? new List<string>();
+    }
+
+    private Skill? GetSelectedSkill()
+    {
+        var skillIds = GetSelectedSkillIds();
+        if (_selectedSkillIndex < 0 || _selectedSkillIndex >= skillIds.Count)
+            return null;
+
+        return _game.GetDatabase().GetSkill(skillIds[_selectedSkillIndex]);
     }
 }
