@@ -1,5 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using PixelForge.Engine.Core;
+using PixelForge.Engine.Quest;
 
 namespace PixelForge.Engine.Dialogue;
 
@@ -130,8 +132,16 @@ public class DialogueManager
 {
     private readonly Dictionary<string, DialogueTree> _dialogues = new();
     private readonly Dictionary<string, string> _strings = new(); // Localization strings
+    private readonly GameState _gameState;
+    private readonly QuestManager _questManager;
     private DialogueTree? _currentDialogue;
     private DialogueNode? _currentNode;
+
+    public DialogueManager(GameState gameState, QuestManager questManager)
+    {
+        _gameState = gameState;
+        _questManager = questManager;
+    }
 
     /// <summary>
     /// Load dialogue from file.
@@ -267,7 +277,66 @@ public class DialogueManager
     /// </summary>
     private bool CheckConditions(List<DialogueCondition> conditions)
     {
-        // TODO: Implement condition checking with game state
+        foreach (var condition in conditions)
+        {
+            switch (condition.Type)
+            {
+                case ConditionType.Switch:
+                    if (!TryParseInt(condition.Parameter, out int switchId)
+                        || !TryParseBool(condition.Value, out bool switchValue))
+                    {
+                        LogWarning($"Invalid switch condition parameters: '{condition.Parameter}'='{condition.Value}'.");
+                        return false;
+                    }
+
+                    if (_gameState.GetSwitch(switchId) != switchValue)
+                        return false;
+                    break;
+                case ConditionType.Variable:
+                    if (!TryParseInt(condition.Parameter, out int variableId)
+                        || !TryParseInt(condition.Value, out int expectedValue))
+                    {
+                        LogWarning($"Invalid variable condition parameters: '{condition.Parameter}'='{condition.Value}'.");
+                        return false;
+                    }
+
+                    if (_gameState.GetVariable(variableId) != expectedValue)
+                        return false;
+                    break;
+                case ConditionType.HasItem:
+                    if (string.IsNullOrWhiteSpace(condition.Parameter))
+                    {
+                        LogWarning("HasItem condition missing item id.");
+                        return false;
+                    }
+
+                    int requiredCount = 1;
+                    if (!string.IsNullOrWhiteSpace(condition.Value)
+                        && !TryParseInt(condition.Value, out requiredCount))
+                    {
+                        LogWarning($"Invalid HasItem condition count: '{condition.Value}'.");
+                        return false;
+                    }
+
+                    if (!_gameState.HasItem(condition.Parameter, requiredCount))
+                        return false;
+                    break;
+                case ConditionType.QuestComplete:
+                    if (string.IsNullOrWhiteSpace(condition.Parameter))
+                    {
+                        LogWarning("QuestComplete condition missing quest id.");
+                        return false;
+                    }
+
+                    if (!_questManager.IsQuestCompleted(condition.Parameter))
+                        return false;
+                    break;
+                default:
+                    LogWarning($"Unknown condition type '{condition.Type}'.");
+                    return false;
+            }
+        }
+
         return true;
     }
 
@@ -276,6 +345,92 @@ public class DialogueManager
     /// </summary>
     private void ExecuteActions(List<DialogueAction> actions)
     {
-        // TODO: Implement action execution
+        foreach (var action in actions)
+        {
+            switch (action.Type)
+            {
+                case ActionType.SetSwitch:
+                    if (!TryParseInt(action.Parameter, out int switchId)
+                        || !TryParseBool(action.Value, out bool switchValue))
+                    {
+                        LogWarning($"Invalid SetSwitch action parameters: '{action.Parameter}'='{action.Value}'.");
+                        continue;
+                    }
+
+                    _gameState.SetSwitch(switchId, switchValue);
+                    break;
+                case ActionType.SetVariable:
+                    if (!TryParseInt(action.Parameter, out int variableId)
+                        || !TryParseInt(action.Value, out int variableValue))
+                    {
+                        LogWarning($"Invalid SetVariable action parameters: '{action.Parameter}'='{action.Value}'.");
+                        continue;
+                    }
+
+                    _gameState.SetVariable(variableId, variableValue);
+                    break;
+                case ActionType.GiveItem:
+                    if (string.IsNullOrWhiteSpace(action.Parameter))
+                    {
+                        LogWarning("GiveItem action missing item id.");
+                        continue;
+                    }
+
+                    int itemCount = 1;
+                    if (!string.IsNullOrWhiteSpace(action.Value)
+                        && !TryParseInt(action.Value, out itemCount))
+                    {
+                        LogWarning($"Invalid GiveItem action count: '{action.Value}'.");
+                        continue;
+                    }
+
+                    if (itemCount <= 0)
+                    {
+                        LogWarning($"GiveItem action count must be positive: '{itemCount}'.");
+                        continue;
+                    }
+
+                    _gameState.AddItem(action.Parameter, itemCount);
+                    break;
+                case ActionType.StartQuest:
+                    if (string.IsNullOrWhiteSpace(action.Parameter))
+                    {
+                        LogWarning("StartQuest action missing quest id.");
+                        continue;
+                    }
+
+                    if (!_questManager.StartQuest(action.Parameter))
+                        LogWarning($"Failed to start quest '{action.Parameter}'.");
+                    break;
+                case ActionType.CompleteQuest:
+                    if (string.IsNullOrWhiteSpace(action.Parameter))
+                    {
+                        LogWarning("CompleteQuest action missing quest id.");
+                        continue;
+                    }
+
+                    if (!_questManager.CompleteQuest(action.Parameter))
+                        LogWarning($"Failed to complete quest '{action.Parameter}'.");
+                    break;
+                default:
+                    LogWarning($"Unknown action type '{action.Type}'.");
+                    break;
+            }
+        }
+    }
+
+    private static bool TryParseInt(string value, out int result)
+    {
+        return int.TryParse(value, out result);
+    }
+
+    private static bool TryParseBool(string value, out bool result)
+    {
+        return bool.TryParse(value, out result);
+    }
+
+    private static void LogWarning(string message)
+    {
+        Console.WriteLine($"[DialogueManager] {message}");
     }
 }

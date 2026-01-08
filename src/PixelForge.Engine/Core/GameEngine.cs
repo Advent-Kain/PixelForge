@@ -19,7 +19,7 @@ public class GameEngine : Game
     private readonly MapManager _mapManager;
     private readonly ResourceManager _resourceManager;
     private readonly PartyManager _partyManager;
-    private readonly InventoryManager _inventoryManager;
+    private readonly GameDatabase _database;
 
     public GameEngine()
     {
@@ -120,6 +120,7 @@ public class GameEngine : Game
     /// </summary>
     public void LoadMap(string mapId)
     {
+        _gameState.CurrentMapId = mapId;
         _mapManager.LoadMap(mapId);
     }
 
