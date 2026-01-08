@@ -33,6 +33,7 @@ public class GameEngine : Game
         _mapManager = new MapManager(_resourceManager);
         _partyManager = new PartyManager();
         _database = new GameDatabase();
+        _mapManager = new MapManager(_resourceManager, _gameState);
 
         // Default window size
         _graphics.PreferredBackBufferWidth = 1280;
@@ -120,6 +121,7 @@ public class GameEngine : Game
     /// </summary>
     public void LoadMap(string mapId)
     {
+        _gameState.CurrentMapId = mapId;
         _mapManager.LoadMap(mapId);
     }
 
