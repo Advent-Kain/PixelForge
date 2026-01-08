@@ -199,16 +199,25 @@ public class InventoryManager
     /// </summary>
     public bool UseItem(string itemId, Item item, GameActor target)
     {
+        return UseItemOnTargets(itemId, item, new[] { target });
+    }
+
+    /// <summary>
+    /// Use an item on multiple targets.
+    /// </summary>
+    public bool UseItemOnTargets(string itemId, Item item, IEnumerable<GameActor> targets)
+    {
         if (!HasItem(itemId))
             return false;
 
-        // Apply effects
-        foreach (var effect in item.Effects)
+        foreach (var target in targets)
         {
-            ApplyEffect(effect, target);
+            foreach (var effect in item.Effects)
+            {
+                ApplyEffect(effect, target);
+            }
         }
 
-        // Remove if consumable
         if (item.Consumable)
         {
             RemoveItem(itemId, 1);

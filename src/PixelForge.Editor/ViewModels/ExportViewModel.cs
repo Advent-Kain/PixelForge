@@ -49,7 +49,8 @@ public partial class ExportViewModel : ObservableObject
 
     public ExportViewModel()
     {
-        _exportService = new ExportService(Environment.CurrentDirectory);
+        var projectRoot = ProjectManager.ProjectRoot ?? Environment.CurrentDirectory;
+        _exportService = new ExportService(projectRoot);
         _exportService.ProgressUpdate += OnProgressUpdate;
 
         ExportCommand = new RelayCommand(async () => await ExportAsync(), () => !IsExporting);

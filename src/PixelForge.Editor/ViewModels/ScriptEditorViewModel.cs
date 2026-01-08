@@ -1,6 +1,10 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using PixelForge.Engine.Scripting;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.IO;
 
 namespace PixelForge.Editor.ViewModels;
@@ -20,11 +24,18 @@ public partial class ScriptEditorViewModel : ViewModelBase
     private string _statusMessage = "Ready";
 
     public ObservableCollection<ScriptFile> Scripts { get; } = new();
+    public ObservableCollection<ScriptDiagnostic> Diagnostics { get; } = new();
 
     private string _scriptsDirectory = "Scripts";
+    private readonly string _compiledOutputDirectory;
+
+    [ObservableProperty]
+    private bool _hasDiagnostics;
 
     public ScriptEditorViewModel()
     {
+        _compiledOutputDirectory = Path.Combine(_scriptsDirectory, "Compiled");
+        Diagnostics.CollectionChanged += OnDiagnosticsChanged;
         LoadScripts();
     }
 
@@ -220,8 +231,79 @@ public class NewScript : GameScript
     [RelayCommand]
     private void Compile()
     {
-        // TODO: Compile scripts using Roslyn
-        StatusMessage = "Compilation not yet implemented";
+        Diagnostics.Clear();
+
+        if (!Directory.Exists(_scriptsDirectory))
+        {
+            StatusMessage = "No scripts directory found";
+            return;
+        }
+
+        var scriptFiles = Directory.GetFiles(_scriptsDirectory, "*.cs");
+        if (scriptFiles.Length == 0)
+        {
+            StatusMessage = "No scripts found to compile";
+            return;
+        }
+
+        var syntaxTrees = scriptFiles
+            .Select(file => CSharpSyntaxTree.ParseText(File.ReadAllText(file), path: file))
+            .ToList();
+
+        var references = AppDomain.CurrentDomain.GetAssemblies()
+            .Where(assembly => !assembly.IsDynamic && !string.IsNullOrWhiteSpace(assembly.Location))
+            .Select(assembly => assembly.Location)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(location => MetadataReference.CreateFromFile(location));
+
+        var compilation = CSharpCompilation.Create(
+            assemblyName: "PixelForge.Scripts",
+            syntaxTrees: syntaxTrees,
+            references: references,
+            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+                .WithNullableContextOptions(NullableContextOptions.Enable)
+        );
+
+        using var peStream = new MemoryStream();
+        using var pdbStream = new MemoryStream();
+        var emitResult = compilation.Emit(peStream, pdbStream);
+
+        foreach (var diagnostic in emitResult.Diagnostics.OrderBy(d => d.Location.SourceTree?.FilePath))
+        {
+            var lineSpan = diagnostic.Location.GetLineSpan();
+            var linePosition = lineSpan.StartLinePosition;
+            Diagnostics.Add(new ScriptDiagnostic
+            {
+                Severity = diagnostic.Severity.ToString(),
+                Id = diagnostic.Id,
+                Message = diagnostic.GetMessage(),
+                File = string.IsNullOrWhiteSpace(lineSpan.Path) ? "Unknown" : Path.GetFileName(lineSpan.Path),
+                Line = linePosition.Line + 1,
+                Column = linePosition.Character + 1
+            });
+        }
+
+        var errorCount = emitResult.Diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error);
+        var warningCount = emitResult.Diagnostics.Count(d => d.Severity == DiagnosticSeverity.Warning);
+
+        if (errorCount > 0)
+        {
+            StatusMessage = $"Compilation failed: {errorCount} error(s), {warningCount} warning(s)";
+            return;
+        }
+
+        Directory.CreateDirectory(_compiledOutputDirectory);
+        var assemblyPath = Path.Combine(_compiledOutputDirectory, "PixelForge.Scripts.dll");
+        var pdbPath = Path.Combine(_compiledOutputDirectory, "PixelForge.Scripts.pdb");
+
+        File.WriteAllBytes(assemblyPath, peStream.ToArray());
+        File.WriteAllBytes(pdbPath, pdbStream.ToArray());
+
+        ScriptRuntime.Instance.Clear();
+        ScriptRuntime.Instance.LoadAssembly(peStream.ToArray(), pdbStream.ToArray());
+        StatusMessage = warningCount > 0
+            ? $"Compilation succeeded with {warningCount} warning(s)"
+            : "Compilation succeeded";
     }
 
     partial void OnSelectedScriptChanged(ScriptFile? value)
@@ -230,6 +312,11 @@ public class NewScript : GameScript
         {
             LoadScript(value);
         }
+    }
+
+    private void OnDiagnosticsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        HasDiagnostics = Diagnostics.Count > 0;
     }
 }
 
@@ -240,4 +327,17 @@ public class ScriptFile
 {
     public string Name { get; set; } = string.Empty;
     public string Path { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Represents a script compilation diagnostic.
+/// </summary>
+public class ScriptDiagnostic
+{
+    public string Severity { get; set; } = string.Empty;
+    public string Id { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public string File { get; set; } = string.Empty;
+    public int Line { get; set; }
+    public int Column { get; set; }
 }

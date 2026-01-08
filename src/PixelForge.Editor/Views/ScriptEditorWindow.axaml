@@ -54,21 +54,51 @@
 
             <GridSplitter Grid.Column="1" Background="#3E3E42" ResizeDirection="Columns" />
 
-            <!-- Editor -->
-            <Border Grid.Column="2" Background="#1E1E1E" Padding="5">
-                <ScrollViewer>
-                    <TextBox Text="{Binding ScriptContent}"
-                             AcceptsReturn="True"
-                             FontFamily="Consolas,Courier New,monospace"
-                             FontSize="12"
-                             Background="#1E1E1E"
-                             Foreground="#D4D4D4"
-                             BorderThickness="0"
-                             TextWrapping="NoWrap"
-                             VerticalScrollBarVisibility="Visible"
-                             HorizontalScrollBarVisibility="Auto" />
-                </ScrollViewer>
-            </Border>
+            <!-- Editor & Diagnostics -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="200" />
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" Background="#1E1E1E" Padding="5">
+                    <ScrollViewer>
+                        <TextBox Text="{Binding ScriptContent}"
+                                 AcceptsReturn="True"
+                                 FontFamily="Consolas,Courier New,monospace"
+                                 FontSize="12"
+                                 Background="#1E1E1E"
+                                 Foreground="#D4D4D4"
+                                 BorderThickness="0"
+                                 TextWrapping="NoWrap"
+                                 VerticalScrollBarVisibility="Visible"
+                                 HorizontalScrollBarVisibility="Auto" />
+                    </ScrollViewer>
+                </Border>
+
+                <Border Grid.Row="1" Background="#1E1E1E" Padding="5">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top"
+                                   Text="Diagnostics"
+                                   FontWeight="Bold"
+                                   Margin="0,0,0,5" />
+                        <DataGrid ItemsSource="{Binding Diagnostics}"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  GridLinesVisibility="All"
+                                  HeadersVisibility="All">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Severity" Binding="{Binding Severity}" Width="100" />
+                                <DataGridTextColumn Header="Id" Binding="{Binding Id}" Width="80" />
+                                <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*" />
+                                <DataGridTextColumn Header="File" Binding="{Binding File}" Width="150" />
+                                <DataGridTextColumn Header="Line" Binding="{Binding Line}" Width="60" />
+                                <DataGridTextColumn Header="Column" Binding="{Binding Column}" Width="70" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </Border>
+            </Grid>
         </Grid>
     </DockPanel>
 </Window>

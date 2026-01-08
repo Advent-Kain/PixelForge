@@ -224,6 +224,77 @@
                 </Grid>
             </TabItem>
 
+            <!-- Tilesets Tab -->
+            <TabItem Header="Tilesets">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="250" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <DockPanel Grid.Column="0">
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="5">
+                            <Button Content="New" Command="{Binding NewTilesetCommand}" />
+                            <Button Content="Delete" Command="{Binding DeleteTilesetCommand}" Margin="5,0,0,0" />
+                        </StackPanel>
+
+                        <ListBox ItemsSource="{Binding Tilesets}"
+                                 SelectedItem="{Binding SelectedTileset}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+
+                    <ScrollViewer Grid.Column="1" Padding="10">
+                        <StackPanel Spacing="10" DataContext="{Binding SelectedTileset}">
+                            <TextBlock Text="Tileset Properties" FontWeight="Bold" FontSize="16" />
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="ID:" />
+                                <NumericUpDown Value="{Binding Id}" Minimum="0" Maximum="9999" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Name:" />
+                                <TextBox Text="{Binding Name}" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Image Path:" />
+                                <TextBox Text="{Binding ImagePath}" />
+                            </StackPanel>
+
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" RowDefinitions="Auto,Auto" RowSpacing="5">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Tile Width:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding TileWidth}" Minimum="1" Maximum="512" />
+
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Tile Height:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding TileHeight}" Minimum="1" Maximum="512" />
+                            </Grid>
+
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" RowDefinitions="Auto,Auto" RowSpacing="5">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Spacing:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding Spacing}" Minimum="0" Maximum="32" />
+
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Margin:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding Margin}" Minimum="0" Maximum="32" />
+                            </Grid>
+
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" RowDefinitions="Auto,Auto" RowSpacing="5">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Columns:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding Columns}" Minimum="0" Maximum="999" />
+
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Rows:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding Rows}" Minimum="0" Maximum="999" />
+                            </Grid>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+
             <!-- Enemies Tab -->
             <TabItem Header="Enemies">
                 <Grid>
