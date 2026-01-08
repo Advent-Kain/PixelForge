@@ -42,6 +42,14 @@ public class PartyManager
     }
 
     /// <summary>
+    /// Clear all actors from the party.
+    /// </summary>
+    public void Clear()
+    {
+        _party.Clear();
+    }
+
+    /// <summary>
     /// Get actor by ID.
     /// </summary>
     public GameActor? GetActor(string actorId)
