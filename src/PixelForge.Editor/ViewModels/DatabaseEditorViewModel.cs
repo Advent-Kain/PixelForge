@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using PixelForge.Engine.Quest;
 using PixelForge.Editor.Services;
 using PixelForge.Shared.Models;
 using PixelForge.Shared.Models.Database;
@@ -24,6 +25,7 @@ public partial class DatabaseEditorViewModel : ViewModelBase
     private const string EnemiesFileName = "enemies.json";
     private const string TroopsFileName = "troops.json";
     private const string StatesFileName = "states.json";
+    private const string QuestsFileName = "quests.json";
     private const string TilesetsFileName = "tilesets.json";
     private const string AnimationsFileName = "animations.json";
     private const string SystemConfigFileName = "system.json";
@@ -63,6 +65,23 @@ public partial class DatabaseEditorViewModel : ViewModelBase
     // States
     public ObservableCollection<State> States { get; } = new();
 
+    // Quests
+    [ObservableProperty]
+    private Quest? _selectedQuest;
+
+    [ObservableProperty]
+    private QuestObjective? _selectedQuestObjective;
+
+    [ObservableProperty]
+    private QuestFlagRequirement? _selectedQuestFlag;
+
+    [ObservableProperty]
+    private string? _newPrerequisiteId;
+
+    [ObservableProperty]
+    private string? _selectedPrerequisite;
+
+    public ObservableCollection<Quest> Quests { get; } = new();
     // Tilesets
     [ObservableProperty]
     private Tileset? _selectedTileset;
@@ -169,6 +188,28 @@ public partial class DatabaseEditorViewModel : ViewModelBase
         };
         Items.Add(item);
 
+        var quest = new Quest
+        {
+            Title = "Rat Extermination",
+            Description = "Clear the cellar of rats.",
+            Requirements = new QuestRequirements
+            {
+                MinLevel = 1
+            },
+            Rewards = new QuestRewards
+            {
+                Experience = 100,
+                Gold = 50
+            }
+        };
+        quest.Objectives.Add(new QuestObjective
+        {
+            Description = "Defeat 5 rats",
+            Type = ObjectiveType.Kill,
+            TargetId = "rat",
+            TargetCount = 5
+        });
+        Quests.Add(quest);
         // Add sample tileset
         var tileset = new Tileset
         {
@@ -299,6 +340,26 @@ public partial class DatabaseEditorViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void NewQuest()
+    {
+        var quest = new Quest
+        {
+            Title = $"Quest{Quests.Count + 1:D3}",
+            Requirements = new QuestRequirements(),
+            Rewards = new QuestRewards()
+        };
+        quest.Objectives.Add(new QuestObjective { Description = "New objective" });
+        Quests.Add(quest);
+        SelectedQuest = quest;
+    }
+
+    [RelayCommand]
+    private void DeleteQuest()
+    {
+        if (SelectedQuest != null)
+        {
+            Quests.Remove(SelectedQuest);
+            SelectedQuest = Quests.FirstOrDefault();
     private void NewTileset()
     {
         var tileset = new Tileset
@@ -322,6 +383,66 @@ public partial class DatabaseEditorViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void NewQuestObjective()
+    {
+        if (SelectedQuest == null)
+            return;
+
+        var objective = new QuestObjective { Description = $"Objective{SelectedQuest.Objectives.Count + 1:D3}" };
+        SelectedQuest.Objectives.Add(objective);
+        SelectedQuestObjective = objective;
+    }
+
+    [RelayCommand]
+    private void DeleteQuestObjective()
+    {
+        if (SelectedQuest == null || SelectedQuestObjective == null)
+            return;
+
+        SelectedQuest.Objectives.Remove(SelectedQuestObjective);
+        SelectedQuestObjective = SelectedQuest.Objectives.FirstOrDefault();
+    }
+
+    [RelayCommand]
+    private void AddQuestPrerequisite()
+    {
+        if (SelectedQuest?.Requirements == null || string.IsNullOrWhiteSpace(NewPrerequisiteId))
+            return;
+
+        SelectedQuest.Requirements.PreviousQuests.Add(NewPrerequisiteId.Trim());
+        SelectedPrerequisite = NewPrerequisiteId.Trim();
+        NewPrerequisiteId = string.Empty;
+    }
+
+    [RelayCommand]
+    private void RemoveQuestPrerequisite()
+    {
+        if (SelectedQuest?.Requirements == null || SelectedPrerequisite == null)
+            return;
+
+        SelectedQuest.Requirements.PreviousQuests.Remove(SelectedPrerequisite);
+        SelectedPrerequisite = SelectedQuest.Requirements.PreviousQuests.FirstOrDefault();
+    }
+
+    [RelayCommand]
+    private void NewQuestFlag()
+    {
+        if (SelectedQuest?.Requirements == null)
+            return;
+
+        var flag = new QuestFlagRequirement { SwitchId = 1, Value = true };
+        SelectedQuest.Requirements.Flags.Add(flag);
+        SelectedQuestFlag = flag;
+    }
+
+    [RelayCommand]
+    private void DeleteQuestFlag()
+    {
+        if (SelectedQuest?.Requirements == null || SelectedQuestFlag == null)
+            return;
+
+        SelectedQuest.Requirements.Flags.Remove(SelectedQuestFlag);
+        SelectedQuestFlag = SelectedQuest.Requirements.Flags.FirstOrDefault();
     private void NewAnimation()
     {
         var animation = new Animation { Name = $"Animation{Animations.Count + 1:D3}" };
@@ -375,6 +496,7 @@ public partial class DatabaseEditorViewModel : ViewModelBase
         SaveCollection(EnemiesFileName, Enemies);
         SaveCollection(TroopsFileName, Troops);
         SaveCollection(StatesFileName, States);
+        SaveCollection(QuestsFileName, Quests);
         SaveCollection(TilesetsFileName, Tilesets);
         SaveCollection(AnimationsFileName, Animations);
         SaveCollection(CommonEventsFileName, CommonEvents);
@@ -407,6 +529,7 @@ public partial class DatabaseEditorViewModel : ViewModelBase
             EnemiesFileName,
             TroopsFileName,
             StatesFileName,
+            QuestsFileName
             TilesetsFileName
             TilesetsFileName,
             AnimationsFileName,
@@ -427,6 +550,7 @@ public partial class DatabaseEditorViewModel : ViewModelBase
         LoadCollection(EnemiesFileName, Enemies);
         LoadCollection(TroopsFileName, Troops);
         LoadCollection(StatesFileName, States);
+        LoadCollection(QuestsFileName, Quests);
         LoadCollection(TilesetsFileName, Tilesets);
         LoadCollection(AnimationsFileName, Animations);
         LoadCollection(CommonEventsFileName, CommonEvents);
@@ -436,6 +560,7 @@ public partial class DatabaseEditorViewModel : ViewModelBase
         SelectedSkill = Skills.FirstOrDefault();
         SelectedItem = Items.FirstOrDefault();
         SelectedEnemy = Enemies.FirstOrDefault();
+        SelectedQuest = Quests.FirstOrDefault();
         SelectedTileset = Tilesets.FirstOrDefault();
         SelectedAnimation = Animations.FirstOrDefault();
         SelectedCommonEvent = CommonEvents.FirstOrDefault();
@@ -474,6 +599,17 @@ public partial class DatabaseEditorViewModel : ViewModelBase
         }
     }
 
+    partial void OnSelectedQuestChanged(Quest? value)
+    {
+        if (value == null)
+            return;
+
+        value.Requirements ??= new QuestRequirements();
+        value.Rewards ??= new QuestRewards();
+
+        SelectedQuestObjective = value.Objectives.FirstOrDefault();
+        SelectedQuestFlag = value.Requirements.Flags.FirstOrDefault();
+        SelectedPrerequisite = value.Requirements.PreviousQuests.FirstOrDefault();
     private void SaveSingle<T>(string fileName, T item)
     {
         var databaseDirectory = ProjectManager.GetDatabaseDirectory();
