@@ -14,15 +14,17 @@ public class MapManager
 {
     private readonly ResourceManager _resourceManager;
     private readonly TileRenderer _tileRenderer;
+    private readonly GameState _gameState;
     private readonly Dictionary<string, MapData> _loadedMaps = new();
 
     public MapData? CurrentMap { get; private set; }
     public Vector2 CameraPosition { get; set; }
 
-    public MapManager(ResourceManager resourceManager)
+    public MapManager(ResourceManager resourceManager, GameState gameState)
     {
         _resourceManager = resourceManager;
         _tileRenderer = new TileRenderer(resourceManager);
+        _gameState = gameState;
     }
 
     /// <summary>
@@ -152,9 +154,50 @@ public class MapManager
     /// </summary>
     private EventPage? GetActivePage(MapEvent evt)
     {
-        // Return the first page for now
-        // TODO: Implement condition checking
-        return evt.Pages.FirstOrDefault();
+        if (evt.Pages.Count == 0)
+            return null;
+
+        for (int i = evt.Pages.Count - 1; i >= 0; i--)
+        {
+            var page = evt.Pages[i];
+            if (CheckConditions(evt, page.Conditions))
+                return page;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Check if page conditions are met against the current game state.
+    /// </summary>
+    private bool CheckConditions(MapEvent evt, EventConditions conditions)
+    {
+        if (conditions.Switch1.HasValue && !_gameState.GetSwitch(conditions.Switch1.Value))
+            return false;
+
+        if (conditions.Switch2.HasValue && !_gameState.GetSwitch(conditions.Switch2.Value))
+            return false;
+
+        if (conditions.Variable.HasValue && conditions.VariableValue.HasValue)
+        {
+            if (_gameState.GetVariable(conditions.Variable.Value) < conditions.VariableValue.Value)
+                return false;
+        }
+
+        if (!string.IsNullOrEmpty(conditions.SelfSwitch))
+        {
+            var mapId = _gameState.CurrentMapId ?? CurrentMap?.Id ?? string.Empty;
+            if (!_gameState.GetSelfSwitch(mapId, evt.Id, conditions.SelfSwitch))
+                return false;
+        }
+
+        if (!string.IsNullOrEmpty(conditions.Item) && !_gameState.HasItem(conditions.Item))
+            return false;
+
+        if (!string.IsNullOrEmpty(conditions.Actor) && !_gameState.PartyMembers.Contains(conditions.Actor))
+            return false;
+
+        return true;
     }
 
     /// <summary>
