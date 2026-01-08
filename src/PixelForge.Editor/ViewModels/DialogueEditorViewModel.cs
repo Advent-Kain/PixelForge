@@ -8,6 +8,7 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PixelForge.Engine.Dialogue;
+using PixelForge.Editor.Views;
 
 namespace PixelForge.Editor.ViewModels;
 
@@ -318,7 +319,7 @@ public partial class DialogueNodeViewModel : ObservableObject
         var vm = new DialogueNodeViewModel
         {
             Id = node.Id,
-            StringKey = node.StringKey,
+            StringKey = node.StringKey ?? string.Empty,
             Text = node.Text ?? string.Empty,
             SpeakerName = node.SpeakerName,
             NodeType = node.NodeType,
@@ -399,7 +400,7 @@ public partial class DialogueChoiceViewModel : ObservableObject
         return new DialogueChoiceViewModel
         {
             Id = choice.Id,
-            StringKey = choice.StringKey,
+            StringKey = choice.StringKey ?? string.Empty,
             Text = choice.Text ?? string.Empty,
             NextNodeId = choice.NextNodeId,
             Conditions = choice.Conditions?.ToList() ?? new()

@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using PixelForge.Engine.Core;
@@ -43,6 +47,9 @@ public class DialogueNode
     [JsonPropertyName("stringKey")]
     public string? StringKey { get; set; } // For localization
 
+    [JsonPropertyName("nextNodeId")]
+    public string? NextNodeId { get; set; } // For linear dialogue progression
+
     [JsonPropertyName("choices")]
     public List<DialogueChoice> Choices { get; set; } = new();
 
@@ -58,6 +65,9 @@ public class DialogueNode
 /// </summary>
 public class DialogueChoice
 {
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
     [JsonPropertyName("text")]
     public string Text { get; set; } = string.Empty;
 
