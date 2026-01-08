@@ -256,4 +256,14 @@ public class InventoryManager
     {
         // Items are stored in dictionary, sorting handled by UI
     }
+
+    /// <summary>
+    /// Clear all inventory items, weapons, and armors.
+    /// </summary>
+    public void Clear()
+    {
+        _items.Clear();
+        _weapons.Clear();
+        _armors.Clear();
+    }
 }

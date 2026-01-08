@@ -158,7 +158,8 @@ public class SaveManager
     private SaveData CreateSaveData(int slot, GameEngine game)
     {
         var gameState = game.GetGameState();
-        // TODO: Get party manager and inventory manager from game
+        var partyManager = game.GetPartyManager();
+        var inventoryManager = game.GetInventoryManager();
 
         var saveData = new SaveData
         {
@@ -168,18 +169,31 @@ public class SaveManager
             CurrentMapId = gameState.CurrentMapId,
             PlayerX = gameState.PlayerX,
             PlayerY = gameState.PlayerY,
-            Gold = gameState.PartyGold,
-            Party = gameState.PartyMembers
-                .Select(memberId => new SavedActor
+            Gold = partyManager.Gold,
+            Party = partyManager.Party
+                .Select(actor => new SavedActor
                 {
-                    ActorId = memberId,
-                    Name = memberId,
-                    Level = 1
+                    ActorId = actor.ActorId,
+                    Name = actor.ActorData?.Name ?? actor.ActorId,
+                    Level = actor.Level,
+                    Experience = actor.Experience,
+                    CurrentHp = actor.CurrentHp,
+                    CurrentMp = actor.CurrentMp,
+                    CurrentTp = actor.CurrentTp,
+                    Equipment = new Dictionary<string, string?>(actor.EquippedItems),
+                    LearnedSkills = new List<string>(actor.LearnedSkills),
+                    States = actor.States
+                        .Select(state => new SavedState
+                        {
+                            StateId = state.StateData.Id,
+                            TurnsRemaining = state.TurnsRemaining
+                        })
+                        .ToList()
                 })
                 .ToList(),
-            Inventory = new Dictionary<string, int>(gameState.Inventory),
-            Weapons = new Dictionary<string, int>(gameState.Weapons),
-            Armors = new Dictionary<string, int>(gameState.Armors),
+            Inventory = inventoryManager.GetAllItems(),
+            Weapons = inventoryManager.GetAllWeapons(),
+            Armors = inventoryManager.GetAllArmors(),
             Switches = gameState.ExportSwitches(),
             Variables = gameState.ExportVariables(),
             SelfSwitches = gameState.ExportSelfSwitches()
@@ -194,10 +208,14 @@ public class SaveManager
     private void ApplySaveData(SaveData saveData, GameEngine game)
     {
         var gameState = game.GetGameState();
+        var partyManager = game.GetPartyManager();
+        var inventoryManager = game.GetInventoryManager();
 
         // Clear state that should be fully rehydrated from save data
         gameState.Inventory.Clear();
         gameState.PartyMembers.Clear();
+        gameState.Weapons.Clear();
+        gameState.Armors.Clear();
 
         // Apply basic state
         gameState.CurrentMapId = saveData.CurrentMapId;
@@ -205,30 +223,91 @@ public class SaveManager
         gameState.PlayerY = saveData.PlayerY;
         gameState.PartyGold = saveData.Gold;
 
-        gameState.PartyMembers.Clear();
-        foreach (var member in saveData.Party)
-        {
-            if (!string.IsNullOrEmpty(member.ActorId))
-            {
-                gameState.PartyMembers.Add(member.ActorId);
-            }
-        }
+        var existingActors = partyManager.Party
+            .Where(actor => !string.IsNullOrEmpty(actor.ActorId))
+            .ToDictionary(actor => actor.ActorId, actor => actor);
+
+        partyManager.Clear();
+        partyManager.Gold = saveData.Gold;
 
         // Apply inventory
-        gameState.Inventory.Clear();
+        inventoryManager.Clear();
         foreach (var item in saveData.Inventory)
+        {
+            inventoryManager.AddItem(item.Key, item.Value);
+        }
+
+        foreach (var weapon in saveData.Weapons)
+        {
+            inventoryManager.AddWeapon(weapon.Key, weapon.Value);
+        }
+
+        foreach (var armor in saveData.Armors)
+        {
+            inventoryManager.AddArmor(armor.Key, armor.Value);
+        }
+
+        foreach (var member in saveData.Party)
+        {
+            if (string.IsNullOrEmpty(member.ActorId))
+            {
+                continue;
+            }
+
+            if (!existingActors.TryGetValue(member.ActorId, out var actor))
+            {
+                actor = new GameActor
+                {
+                    ActorId = member.ActorId,
+                    ActorData = new Shared.Models.Database.Actor
+                    {
+                        Id = member.ActorId,
+                        Name = member.Name
+                    }
+                };
+            }
+
+            actor.Level = member.Level;
+            actor.Experience = member.Experience;
+            actor.CurrentHp = member.CurrentHp;
+            actor.CurrentMp = member.CurrentMp;
+            actor.CurrentTp = member.CurrentTp;
+            actor.EquippedItems = new Dictionary<string, string?>(member.Equipment);
+            actor.LearnedSkills = new List<string>(member.LearnedSkills);
+            actor.States = member.States
+                .Select(state => new ActiveState
+                {
+                    StateData = new Shared.Models.Database.State
+                    {
+                        Id = state.StateId
+                    },
+                    TurnsRemaining = state.TurnsRemaining
+                })
+                .ToList();
+
+            partyManager.AddActor(actor);
+        }
+
+        gameState.PartyMembers.Clear();
+        foreach (var actor in partyManager.Party)
+        {
+            gameState.PartyMembers.Add(actor.ActorId);
+        }
+
+        gameState.Inventory.Clear();
+        foreach (var item in inventoryManager.GetAllItems())
         {
             gameState.AddItem(item.Key, item.Value);
         }
 
         gameState.Weapons.Clear();
-        foreach (var weapon in saveData.Weapons)
+        foreach (var weapon in inventoryManager.GetAllWeapons())
         {
             gameState.Weapons[weapon.Key] = weapon.Value;
         }
 
         gameState.Armors.Clear();
-        foreach (var armor in saveData.Armors)
+        foreach (var armor in inventoryManager.GetAllArmors())
         {
             gameState.Armors[armor.Key] = armor.Value;
         }
