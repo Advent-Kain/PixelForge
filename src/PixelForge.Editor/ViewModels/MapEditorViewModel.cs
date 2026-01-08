@@ -131,4 +131,17 @@ public partial class MapEditorViewModel : ViewModelBase
 
         SelectedLayer.SetTile(x, y, TileData.Empty);
     }
+
+    public void LoadMap(MapData map)
+    {
+        CurrentMap = map;
+        Layers.Clear();
+
+        foreach (var layer in map.Layers)
+        {
+            Layers.Add(layer);
+        }
+
+        SelectedLayer = Layers.FirstOrDefault();
+    }
 }
