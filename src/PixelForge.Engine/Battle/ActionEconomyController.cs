@@ -16,6 +16,8 @@ public class ActionEconomyController : IBattleController
     private Battler? _activeBattler;
     private ComboSequence? _currentCombo;
     private readonly int _maxApPerTurn = 7;
+    private int _targetIndex;
+    private KeyboardState _previousKeyboard;
 
     public ActionEconomyController(GameEngine game, BattleState state)
     {
@@ -75,6 +77,7 @@ public class ActionEconomyController : IBattleController
         if (_activeBattler != null)
         {
             _currentCombo = new ComboSequence { User = _activeBattler };
+            _targetIndex = 0;
             _state.Phase = BattlePhase.Input;
         }
         else
@@ -92,9 +95,9 @@ public class ActionEconomyController : IBattleController
         if (_activeBattler == null || _currentCombo == null)
             return;
 
-        // TODO: Get input from battle UI
-        // For now, simulate with keyboard
-        var input = GetComboInput();
+        var keyboard = Keyboard.GetState();
+        UpdateTargetSelection(keyboard);
+        var input = GetComboInput(keyboard);
 
         if (input.HasValue)
         {
@@ -112,6 +115,13 @@ public class ActionEconomyController : IBattleController
                 }
             }
         }
+
+        if (IsPressed(keyboard, Keys.Enter) && _currentCombo.Skills.Count > 0)
+        {
+            _state.Phase = BattlePhase.Execution;
+        }
+
+        _previousKeyboard = keyboard;
     }
 
     /// <summary>
@@ -280,16 +290,32 @@ public class ActionEconomyController : IBattleController
         StartNewTurn();
     }
 
-    private ComboInput? GetComboInput()
-    {
-        // TODO: Get from battle UI
-        return null;
-    }
-
     private Skill? GetSkillForInput(ComboInput input)
     {
-        // TODO: Look up skill based on input and current combo state
-        return null;
+        if (_activeBattler == null)
+            return null;
+
+        var availableSkills = BattleSelectionHelper.GetAvailableSkills(_game, _activeBattler)
+            .Where(skill => skill.ComboProperties != null && skill.ComboProperties.ComboInput == input)
+            .ToList();
+
+        if (_currentCombo != null && _currentCombo.Skills.Count > 0)
+        {
+            var lastSkill = _currentCombo.Skills.Last();
+            var nextSkills = lastSkill.ComboProperties?.NextSkills;
+            if (nextSkills != null && nextSkills.Count > 0)
+            {
+                availableSkills = availableSkills
+                    .Where(skill => nextSkills.Contains(skill.Id))
+                    .ToList();
+            }
+        }
+
+        int requiredCombo = _currentCombo?.ComboLevel ?? 0;
+        return availableSkills
+            .Where(skill => skill.ComboProperties?.RequiredCombo <= requiredCombo + 1)
+            .OrderBy(skill => skill.ComboProperties?.ComboLevel ?? 0)
+            .FirstOrDefault();
     }
 
     private bool CanUseSkill(Skill skill)
@@ -304,8 +330,10 @@ public class ActionEconomyController : IBattleController
 
     private List<Battler> SelectTargets(Skill skill)
     {
-        // TODO: Smart target selection based on scope
-        return _state.Enemies.Where(e => e.IsAlive).Take(1).ToList();
+        if (_activeBattler == null)
+            return new List<Battler>();
+
+        return BattleTargeting.SelectTargets(_state, _activeBattler, skill.Scope, _targetIndex);
     }
 
     private void ApplySkillEffects(Battler target, Skill skill)
@@ -337,6 +365,48 @@ public class ActionEconomyController : IBattleController
     private IEnumerable<Battler> GetAllBattlers()
     {
         return _state.Party.Concat(_state.Enemies);
+    }
+
+    private ComboInput? GetComboInput(KeyboardState keyboard)
+    {
+        if (IsPressed(keyboard, Keys.Z) || IsPressed(keyboard, Keys.D1))
+            return ComboInput.Weak;
+        if (IsPressed(keyboard, Keys.X) || IsPressed(keyboard, Keys.D2))
+            return ComboInput.Strong;
+        if (IsPressed(keyboard, Keys.C) || IsPressed(keyboard, Keys.D3))
+            return ComboInput.Special;
+        if (IsPressed(keyboard, Keys.V) || IsPressed(keyboard, Keys.D4))
+            return ComboInput.Deathblow;
+
+        return null;
+    }
+
+    private void UpdateTargetSelection(KeyboardState keyboard)
+    {
+        if (_activeBattler == null || _currentCombo == null)
+            return;
+
+        var scope = _currentCombo.Skills.LastOrDefault()?.Scope ?? SkillScope.OneEnemy;
+        if (!BattleTargeting.RequiresTargetSelection(scope))
+            return;
+
+        var candidates = BattleTargeting.GetSelectableTargets(_state, _activeBattler, scope);
+        if (candidates.Count == 0)
+            return;
+
+        if (IsPressed(keyboard, Keys.Left) || IsPressed(keyboard, Keys.Up))
+        {
+            _targetIndex = (_targetIndex - 1 + candidates.Count) % candidates.Count;
+        }
+        else if (IsPressed(keyboard, Keys.Right) || IsPressed(keyboard, Keys.Down))
+        {
+            _targetIndex = (_targetIndex + 1) % candidates.Count;
+        }
+    }
+
+    private bool IsPressed(KeyboardState keyboard, Keys key)
+    {
+        return keyboard.IsKeyDown(key) && _previousKeyboard.IsKeyUp(key);
     }
 }
 

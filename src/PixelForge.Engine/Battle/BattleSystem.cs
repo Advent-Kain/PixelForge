@@ -172,6 +172,7 @@ public class BattleAction
     public required Battler User { get; set; }
     public Skill? Skill { get; set; }
     public Item? Item { get; set; }
+    public string? ItemId { get; set; }
     public List<Battler> Targets { get; set; } = new();
     public ActionType Type { get; set; }
 }
