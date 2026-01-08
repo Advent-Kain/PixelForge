@@ -19,6 +19,7 @@ public class GameEngine : Game
     private readonly MapManager _mapManager;
     private readonly ResourceManager _resourceManager;
     private readonly PartyManager _partyManager;
+    private readonly InventoryManager _inventoryManager;
     private readonly GameDatabase _database;
 
     public GameEngine()
@@ -33,6 +34,7 @@ public class GameEngine : Game
         _mapManager = new MapManager(_resourceManager);
         _partyManager = new PartyManager();
         _inventoryManager = new InventoryManager();
+        _database = new GameDatabase();
 
         // Default window size
         _graphics.PreferredBackBufferWidth = 1280;
@@ -143,6 +145,11 @@ public class GameEngine : Game
     /// Get the party manager.
     /// </summary>
     public PartyManager GetPartyManager() => _partyManager;
+
+    /// <summary>
+    /// Get the game database.
+    /// </summary>
+    public GameDatabase GetDatabase() => _database;
 
     /// <summary>
     /// Get the inventory manager.
