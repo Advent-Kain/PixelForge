@@ -149,6 +149,7 @@ public class ATBController : IBattleController
     /// </summary>
     private void ExecuteAction(BattleAction action)
     {
+        action.User.IsGuarding = false;
         switch (action.Type)
         {
             case ActionType.Attack:
@@ -236,19 +237,20 @@ public class ATBController : IBattleController
         }
     }
 
-    private void ExecuteGuard(BattleAction action) { }
+    private void ExecuteGuard(BattleAction action)
+    {
+        action.User.IsGuarding = true;
+    }
     private void ExecuteItem(BattleAction action) { }
 
     private int CalculateDamage(Battler attacker, Battler defender)
     {
-        int baseDamage = 20;
-        int variance = new Random().Next(-5, 6);
-        return Math.Max(0, baseDamage + variance);
+        return BattleFormulaEvaluator.CalculateAttackDamage(_game, attacker, defender);
     }
 
     private int CalculateSkillDamage(Battler user, Battler target, Shared.Models.Database.Skill skill)
     {
-        return 30;
+        return BattleFormulaEvaluator.CalculateSkillDamage(_game, user, target, skill);
     }
 
     private void ApplyDamage(Battler target, int damage)
@@ -258,14 +260,13 @@ public class ATBController : IBattleController
 
     private void ApplyHealing(Battler target, int healing)
     {
-        int maxHp = 100;
+        int maxHp = BattleFormulaEvaluator.GetMaxHp(_game, target);
         target.CurrentHp = Math.Min(maxHp, target.CurrentHp + healing);
     }
 
     private float GetAgilityMultiplier(Battler battler)
     {
-        // TODO: Get actual agility from stats
-        return 1.0f;
+        return BattleFormulaEvaluator.GetAgilityMultiplier(_game, battler);
     }
 
     private IEnumerable<Battler> GetAllBattlers()

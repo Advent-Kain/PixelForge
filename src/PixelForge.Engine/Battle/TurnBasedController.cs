@@ -129,6 +129,7 @@ public class TurnBasedController : IBattleController
     /// </summary>
     private void ExecuteAction(BattleAction action)
     {
+        action.User.IsGuarding = false;
         switch (action.Type)
         {
             case ActionType.Attack:
@@ -200,7 +201,7 @@ public class TurnBasedController : IBattleController
     /// </summary>
     private void ExecuteGuard(BattleAction action)
     {
-        // Add guard state or set flag
+        action.User.IsGuarding = true;
     }
 
     /// <summary>
@@ -251,10 +252,7 @@ public class TurnBasedController : IBattleController
     /// </summary>
     private int CalculateDamage(Battler attacker, Battler defender)
     {
-        // Simple formula: ATK * 2 - DEF
-        int baseDamage = 20; // Placeholder
-        int variance = new Random().Next(-5, 6);
-        return Math.Max(0, baseDamage + variance);
+        return BattleFormulaEvaluator.CalculateAttackDamage(_game, attacker, defender);
     }
 
     /// <summary>
@@ -262,8 +260,7 @@ public class TurnBasedController : IBattleController
     /// </summary>
     private int CalculateSkillDamage(Battler user, Battler target, Shared.Models.Database.Skill skill)
     {
-        // TODO: Parse and evaluate formula
-        return 30; // Placeholder
+        return BattleFormulaEvaluator.CalculateSkillDamage(_game, user, target, skill);
     }
 
     /// <summary>
@@ -279,8 +276,7 @@ public class TurnBasedController : IBattleController
     /// </summary>
     private void ApplyHealing(Battler target, int healing)
     {
-        // TODO: Get max HP from stats
-        int maxHp = 100;
+        int maxHp = BattleFormulaEvaluator.GetMaxHp(_game, target);
         target.CurrentHp = Math.Min(maxHp, target.CurrentHp + healing);
     }
 }

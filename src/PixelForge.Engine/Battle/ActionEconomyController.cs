@@ -166,6 +166,8 @@ public class ActionEconomyController : IBattleController
         if (action.Skill == null)
             return;
 
+        action.User.IsGuarding = false;
+
         // Cost
         action.User.CurrentMp -= action.Skill.MpCost;
         action.User.CurrentTp -= action.Skill.TpCost;
@@ -260,6 +262,7 @@ public class ActionEconomyController : IBattleController
 
     private void ExecuteAttack(BattleAction action)
     {
+        action.User.IsGuarding = false;
         foreach (var target in action.Targets)
         {
             if (!target.IsAlive) continue;
@@ -312,15 +315,12 @@ public class ActionEconomyController : IBattleController
 
     private int CalculateDamage(Battler attacker, Battler defender)
     {
-        int baseDamage = 20;
-        int variance = new Random().Next(-5, 6);
-        return Math.Max(0, baseDamage + variance);
+        return BattleFormulaEvaluator.CalculateAttackDamage(_game, attacker, defender);
     }
 
     private int CalculateSkillDamage(Battler user, Battler target, Skill skill)
     {
-        // TODO: Parse and evaluate formula
-        return 30;
+        return BattleFormulaEvaluator.CalculateSkillDamage(_game, user, target, skill);
     }
 
     private void ApplyDamage(Battler target, int damage)
@@ -330,7 +330,7 @@ public class ActionEconomyController : IBattleController
 
     private void ApplyHealing(Battler target, int healing)
     {
-        int maxHp = 100;
+        int maxHp = BattleFormulaEvaluator.GetMaxHp(_game, target);
         target.CurrentHp = Math.Min(maxHp, target.CurrentHp + healing);
     }
 
