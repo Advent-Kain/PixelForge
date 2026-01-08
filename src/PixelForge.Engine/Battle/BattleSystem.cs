@@ -153,6 +153,7 @@ public class Battler
 
     public float ATBGauge { get; set; }
     public List<State> States { get; set; } = new();
+    public bool IsGuarding { get; set; }
 
     public bool IsAlive => CurrentHp > 0;
     public bool CanAct => IsAlive && !HasRestriction();
