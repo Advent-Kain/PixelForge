@@ -1,7 +1,10 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using PixelForge.Editor.Services;
 using PixelForge.Shared.Models.Database;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Text.Json;
 
 namespace PixelForge.Editor.ViewModels;
 
@@ -10,6 +13,17 @@ namespace PixelForge.Editor.ViewModels;
 /// </summary>
 public partial class DatabaseEditorViewModel : ViewModelBase
 {
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    private const string ActorsFileName = "actors.json";
+    private const string ClassesFileName = "classes.json";
+    private const string SkillsFileName = "skills.json";
+    private const string ItemsFileName = "items.json";
+    private const string WeaponsFileName = "weapons.json";
+    private const string ArmorsFileName = "armors.json";
+    private const string EnemiesFileName = "enemies.json";
+    private const string TroopsFileName = "troops.json";
+    private const string StatesFileName = "states.json";
+
     [ObservableProperty]
     private int _selectedTab;
 
@@ -46,13 +60,16 @@ public partial class DatabaseEditorViewModel : ViewModelBase
 
     public DatabaseEditorViewModel()
     {
-        LoadDefaultData();
+        if (!LoadFromDisk())
+        {
+            LoadSampleData();
+        }
     }
 
     /// <summary>
     /// Load default/sample data.
     /// </summary>
-    private void LoadDefaultData()
+    private void LoadSampleData()
     {
         // Add sample actor
         var actor = new Actor
@@ -201,12 +218,101 @@ public partial class DatabaseEditorViewModel : ViewModelBase
     [RelayCommand]
     private void Save()
     {
-        // TODO: Serialize to JSON files
+        var databaseDirectory = ProjectManager.GetDatabaseDirectory();
+        if (databaseDirectory == null)
+            return;
+
+        Directory.CreateDirectory(databaseDirectory);
+
+        SaveCollection(ActorsFileName, Actors);
+        SaveCollection(ClassesFileName, Classes);
+        SaveCollection(SkillsFileName, Skills);
+        SaveCollection(ItemsFileName, Items);
+        SaveCollection(WeaponsFileName, Weapons);
+        SaveCollection(ArmorsFileName, Armors);
+        SaveCollection(EnemiesFileName, Enemies);
+        SaveCollection(TroopsFileName, Troops);
+        SaveCollection(StatesFileName, States);
     }
 
     [RelayCommand]
     private void Load()
     {
-        // TODO: Load from JSON files
+        if (!LoadFromDisk())
+        {
+            LoadSampleData();
+        }
+    }
+
+    private bool LoadFromDisk()
+    {
+        var databaseDirectory = ProjectManager.GetDatabaseDirectory();
+        if (databaseDirectory == null || !Directory.Exists(databaseDirectory))
+            return false;
+
+        var files = new[]
+        {
+            ActorsFileName,
+            ClassesFileName,
+            SkillsFileName,
+            ItemsFileName,
+            WeaponsFileName,
+            ArmorsFileName,
+            EnemiesFileName,
+            TroopsFileName,
+            StatesFileName
+        };
+
+        var hasAnyFile = files.Any(fileName => File.Exists(Path.Combine(databaseDirectory, fileName)));
+        if (!hasAnyFile)
+            return false;
+
+        LoadCollection(ActorsFileName, Actors);
+        LoadCollection(ClassesFileName, Classes);
+        LoadCollection(SkillsFileName, Skills);
+        LoadCollection(ItemsFileName, Items);
+        LoadCollection(WeaponsFileName, Weapons);
+        LoadCollection(ArmorsFileName, Armors);
+        LoadCollection(EnemiesFileName, Enemies);
+        LoadCollection(TroopsFileName, Troops);
+        LoadCollection(StatesFileName, States);
+
+        SelectedActor = Actors.FirstOrDefault();
+        SelectedSkill = Skills.FirstOrDefault();
+        SelectedItem = Items.FirstOrDefault();
+        SelectedEnemy = Enemies.FirstOrDefault();
+
+        return true;
+    }
+
+    private void SaveCollection<T>(string fileName, IEnumerable<T> collection)
+    {
+        var databaseDirectory = ProjectManager.GetDatabaseDirectory();
+        if (databaseDirectory == null)
+            return;
+
+        var filePath = Path.Combine(databaseDirectory, fileName);
+        var json = JsonSerializer.Serialize(collection, JsonOptions);
+        File.WriteAllText(filePath, json);
+    }
+
+    private void LoadCollection<T>(string fileName, ObservableCollection<T> target)
+    {
+        var databaseDirectory = ProjectManager.GetDatabaseDirectory();
+        if (databaseDirectory == null)
+            return;
+
+        var filePath = Path.Combine(databaseDirectory, fileName);
+        target.Clear();
+
+        if (!File.Exists(filePath))
+            return;
+
+        var json = File.ReadAllText(filePath);
+        var items = JsonSerializer.Deserialize<List<T>>(json) ?? new List<T>();
+        foreach (var item in items)
+        {
+            target.Add(item);
+        }
     }
 }

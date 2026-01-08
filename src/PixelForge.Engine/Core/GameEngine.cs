@@ -19,6 +19,7 @@ public class GameEngine : Game
     private readonly MapManager _mapManager;
     private readonly ResourceManager _resourceManager;
     private readonly PartyManager _partyManager;
+    private readonly InventoryManager _inventoryManager;
     private readonly GameDatabase _database;
     private readonly InventoryManager _inventoryManager;
 

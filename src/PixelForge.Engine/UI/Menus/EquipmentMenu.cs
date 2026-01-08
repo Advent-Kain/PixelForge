@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using PixelForge.Engine.Core;
+using PixelForge.Engine.RPG;
 
 namespace PixelForge.Engine.UI;
 
@@ -13,7 +14,15 @@ public class EquipmentMenu : IMenu
     private readonly GameEngine _game;
     private int _selectedActorIndex;
     private int _selectedSlotIndex;
-    private readonly string[] _slots = new[] { "Weapon", "Shield", "Head", "Body", "Accessory 1", "Accessory 2" };
+    private readonly (string Label, string Key)[] _slots =
+    {
+        ("Weapon", "weapon"),
+        ("Shield", "shield"),
+        ("Head", "head"),
+        ("Body", "body"),
+        ("Accessory 1", "accessory1"),
+        ("Accessory 2", "accessory2")
+    };
 
     private KeyboardState _previousKeyboard;
 
@@ -35,15 +44,16 @@ public class EquipmentMenu : IMenu
     public void Update(GameTime gameTime)
     {
         var keyboard = Keyboard.GetState();
+        var party = _game.GetPartyManager().Party;
 
         // Navigate actors (Left/Right)
-        if (keyboard.IsKeyDown(Keys.Right) && _previousKeyboard.IsKeyUp(Keys.Right))
+        if (party.Count > 0 && keyboard.IsKeyDown(Keys.Right) && _previousKeyboard.IsKeyUp(Keys.Right))
         {
-            _selectedActorIndex = (_selectedActorIndex + 1) % 4; // Max 4 party members
+            _selectedActorIndex = (_selectedActorIndex + 1) % party.Count;
         }
-        else if (keyboard.IsKeyDown(Keys.Left) && _previousKeyboard.IsKeyUp(Keys.Left))
+        else if (party.Count > 0 && keyboard.IsKeyDown(Keys.Left) && _previousKeyboard.IsKeyUp(Keys.Left))
         {
-            _selectedActorIndex = (_selectedActorIndex - 1 + 4) % 4;
+            _selectedActorIndex = (_selectedActorIndex - 1 + party.Count) % party.Count;
         }
 
         // Navigate slots (Up/Down)
@@ -83,10 +93,26 @@ public class EquipmentMenu : IMenu
         Vector2 titlePos = new Vector2(windowRect.X + 20, windowRect.Y + 10);
         spriteBatch.DrawString(font, "Equipment", titlePos, Color.White);
 
-        // Draw actor name
-        string actorName = $"Actor {_selectedActorIndex + 1}"; // TODO: Get from party
+        var actor = GetSelectedActor();
+        if (actor == null)
+        {
+            Vector2 emptyPos = new Vector2(windowRect.X + 20, windowRect.Y + 50);
+            spriteBatch.DrawString(font, "No party members.", emptyPos, Color.Gray);
+            return;
+        }
+
+        var actorStats = actor.GetCurrentStats();
+        int maxHp = Math.Max(1, actorStats.MaxHp);
+        int maxMp = Math.Max(1, actorStats.MaxMp);
+        int currentHp = Math.Clamp(actor.CurrentHp, 0, maxHp);
+        int currentMp = Math.Clamp(actor.CurrentMp, 0, maxMp);
+        string actorName = actor.ActorData?.Name ?? actor.ActorId;
+        string className = actor.ClassData?.Name ?? "Unknown Class";
+
+        // Draw actor info
         Vector2 namePos = new Vector2(windowRect.X + 20, windowRect.Y + 50);
-        spriteBatch.DrawString(font, actorName, namePos, Color.Cyan);
+        spriteBatch.DrawString(font, $"{actorName} - {className} (Lv {actor.Level})", namePos, Color.Cyan);
+        spriteBatch.DrawString(font, $"HP: {currentHp}/{maxHp}   MP: {currentMp}/{maxMp}", namePos + new Vector2(0, 25), Color.White);
 
         // Draw equipment slots
         for (int i = 0; i < _slots.Length; i++)
@@ -94,7 +120,7 @@ public class EquipmentMenu : IMenu
             Color color = i == _selectedSlotIndex ? Color.Yellow : Color.White;
             Vector2 pos = new Vector2(
                 windowRect.X + 40,
-                windowRect.Y + 100 + i * 40
+                windowRect.Y + 120 + i * 40
             );
 
             if (i == _selectedSlotIndex)
@@ -102,7 +128,7 @@ public class EquipmentMenu : IMenu
                 spriteBatch.DrawString(font, ">", pos - new Vector2(20, 0), Color.Yellow);
             }
 
-            string slotText = $"{_slots[i]}: None"; // TODO: Show equipped item
+            string slotText = $"{_slots[i].Label}: {GetEquippedName(actor, _slots[i].Key)}";
             spriteBatch.DrawString(font, slotText, pos, color);
         }
 
@@ -133,5 +159,24 @@ public class EquipmentMenu : IMenu
         spriteBatch.Draw(texture, new Rectangle(rect.X, rect.Bottom - thickness, rect.Width, thickness), color);
         spriteBatch.Draw(texture, new Rectangle(rect.X, rect.Y, thickness, rect.Height), color);
         spriteBatch.Draw(texture, new Rectangle(rect.Right - thickness, rect.Y, thickness, rect.Height), color);
+    }
+
+    private GameActor? GetSelectedActor()
+    {
+        var party = _game.GetPartyManager().Party;
+        if (party.Count == 0)
+            return null;
+
+        _selectedActorIndex = Math.Clamp(_selectedActorIndex, 0, party.Count - 1);
+        return party[_selectedActorIndex];
+    }
+
+    private string GetEquippedName(GameActor actor, string slotKey)
+    {
+        if (!actor.EquippedItems.TryGetValue(slotKey, out var itemId) || string.IsNullOrEmpty(itemId))
+            return "None";
+
+        var equipment = _game.GetDatabase().GetEquipment(itemId);
+        return equipment?.Name ?? "Unknown";
     }
 }
