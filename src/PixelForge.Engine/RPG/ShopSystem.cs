@@ -55,9 +55,9 @@ public class ShopManager
     /// <summary>
     /// Buy item from shop.
     /// </summary>
-    public bool BuyItem(ShopItem shopItem, string itemId, int quantity)
+    public bool BuyItem(ShopItem shopItem, string itemId, int quantity, int unitPrice)
     {
-        int totalPrice = shopItem.Price * quantity;
+        int totalPrice = unitPrice * quantity;
 
         // Check if player has enough gold
         if (_party.Gold < totalPrice)

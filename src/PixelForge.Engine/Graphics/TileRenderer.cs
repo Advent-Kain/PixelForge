@@ -28,6 +28,25 @@ public class TileRenderer
     }
 
     /// <summary>
+    /// Register multiple tilesets at once.
+    /// </summary>
+    public void RegisterTilesets(IEnumerable<Tileset> tilesets)
+    {
+        foreach (var tileset in tilesets)
+        {
+            _tilesets[tileset.Id] = tileset;
+        }
+    }
+
+    /// <summary>
+    /// Clear all registered tilesets.
+    /// </summary>
+    public void ClearTilesets()
+    {
+        _tilesets.Clear();
+    }
+
+    /// <summary>
     /// Draw a tile.
     /// </summary>
     public void DrawTile(
@@ -58,6 +77,7 @@ public class TileRenderer
         if (tilesPerRow <= 0)
             return;
 
+        int tilesPerRow = Math.Max(1, (texture.Width - tileset.Margin * 2 + tileset.Spacing) / (tileset.TileWidth + tileset.Spacing));
         int sourceX = tileset.Margin + (tile.TileId % tilesPerRow) * (tileset.TileWidth + tileset.Spacing);
         int sourceY = tileset.Margin + (tile.TileId / tilesPerRow) * (tileset.TileHeight + tileset.Spacing);
 

@@ -33,25 +33,42 @@ public class EventProcessor
         RegisterHandler(101, new ShowMessageHandler());
         RegisterHandler(102, new ShowChoicesHandler());
         RegisterHandler(103, new InputNumberHandler());
+        RegisterHandler(117, new CommonEventHandler());
         RegisterHandler(111, new ConditionalBranchHandler());
         RegisterHandler(112, new LoopHandler());
         RegisterHandler(113, new BreakLoopHandler());
+        RegisterHandler(115, new ExitEventProcessingHandler());
         RegisterHandler(121, new ControlSwitchesHandler());
         RegisterHandler(122, new ControlVariablesHandler());
         RegisterHandler(123, new ControlSelfSwitchHandler());
         RegisterHandler(125, new ChangeGoldHandler());
         RegisterHandler(126, new ChangeItemsHandler());
+        RegisterHandler(129, new ChangePartyMemberHandler());
         RegisterHandler(118, new LabelHandler());
         RegisterHandler(119, new JumpToLabelHandler());
         RegisterHandler(201, new TransferPlayerHandler());
         RegisterHandler(204, new ScrollMapHandler());
         RegisterHandler(205, new SetMovementRouteHandler());
+        RegisterHandler(214, new EraseEventHandler());
         RegisterHandler(221, new FadeoutScreenHandler());
         RegisterHandler(222, new FadeinScreenHandler());
+        RegisterHandler(223, new TintScreenHandler());
         RegisterHandler(224, new FlashScreenHandler());
         RegisterHandler(225, new ShakeScreenHandler());
+        RegisterHandler(230, new WaitHandler());
+        RegisterHandler(231, new ShowPictureHandler());
+        RegisterHandler(232, new MovePictureHandler());
+        RegisterHandler(233, new RotatePictureHandler());
+        RegisterHandler(234, new TintPictureHandler());
+        RegisterHandler(235, new ErasePictureHandler());
+        RegisterHandler(212, new ShowAnimationHandler());
         RegisterHandler(241, new PlayBgmHandler());
+        RegisterHandler(242, new FadeoutBgmHandler());
+        RegisterHandler(245, new PlayBgsHandler());
+        RegisterHandler(246, new FadeoutBgsHandler());
+        RegisterHandler(249, new PlayMeHandler());
         RegisterHandler(250, new PlaySeHandler());
+        RegisterHandler(251, new StopSeHandler());
         RegisterHandler(301, new BattleProcessingHandler());
         RegisterHandler(302, new ShopProcessingHandler());
         RegisterHandler(355, new ScriptHandler());
@@ -75,8 +92,25 @@ public class EventProcessor
         if (activePage == null)
             return;
 
+        StartCommandList(activePage.Commands);
+    }
+
+    /// <summary>
+    /// Execute a common event by ID.
+    /// </summary>
+    public void ExecuteCommonEvent(string commonEventId)
+    {
+        var commonEvent = _game.GetDatabase().GetCommonEvent(commonEventId);
+        if (commonEvent == null)
+            return;
+
+        StartCommandList(commonEvent.Commands);
+    }
+
+    private void StartCommandList(List<EventCommand> commands)
+    {
         _commands.Clear();
-        _commands.AddRange(activePage.Commands);
+        _commands.AddRange(commands);
         _labelIndices = BuildLabelIndex(_commands);
         _loopStack.Clear();
         _currentCommand = null;
@@ -199,6 +233,18 @@ public class EventProcessor
             await Task.Delay(duration);
             _waiting = false;
         });
+    }
+
+    /// <summary>
+    /// End the current event processing immediately.
+    /// </summary>
+    public void EndEventProcessing()
+    {
+        _commands.Clear();
+        _loopStack.Clear();
+        _currentCommand = null;
+        _waiting = false;
+        _commandIndex = 0;
     }
 
     /// <summary>

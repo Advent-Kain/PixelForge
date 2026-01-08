@@ -145,6 +145,20 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void OpenEventEditor()
+    {
+        if (MapEditor?.CurrentMap == null)
+        {
+            StatusText = "No map loaded";
+            return;
+        }
+
+        var window = new Views.EventEditorWindow(MapEditor.CurrentMap);
+        window.Show();
+        StatusText = "Opened event editor";
+    }
+
+    [RelayCommand]
     private void Exit()
     {
         // Application exit handled by window

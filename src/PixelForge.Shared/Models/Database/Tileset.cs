@@ -4,6 +4,7 @@ namespace PixelForge.Shared.Models.Database;
 
 /// <summary>
 /// Represents a tileset definition stored in the project database.
+/// Tileset definition for map rendering.
 /// </summary>
 public class Tileset
 {
@@ -12,6 +13,7 @@ public class Tileset
 
     [JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;
+    public string Name { get; set; } = "New Tileset";
 
     [JsonPropertyName("imagePath")]
     public string ImagePath { get; set; } = string.Empty;
@@ -33,4 +35,6 @@ public class Tileset
 
     [JsonPropertyName("rows")]
     public int Rows { get; set; }
+    [JsonPropertyName("note")]
+    public string? Note { get; set; }
 }

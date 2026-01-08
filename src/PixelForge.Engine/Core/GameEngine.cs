@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using PixelForge.Engine.Events;
 using PixelForge.Engine.Graphics;
 using PixelForge.Engine.Map;
 using PixelForge.Engine.RPG;
@@ -35,6 +36,10 @@ public class GameEngine : Game, IGameContext
         _mapManager = new MapManager(_resourceManager, _gameState, _database);
         _partyManager = new PartyManager();
         _inventoryManager = new InventoryManager();
+        _mapManager = new MapManager(this);
+        _partyManager = new PartyManager();
+        _inventoryManager = new InventoryManager();
+        _animationPlayer = new AnimationPlayer(_resourceManager, _database);
 
         // Default window size
         _graphics.PreferredBackBufferWidth = 1280;
@@ -53,6 +58,9 @@ public class GameEngine : Game, IGameContext
         IsFixedTimeStep = true;
 
         _inputManager.Initialize();
+
+        LoadDatabase();
+        ApplySystemConfig();
     }
 
     /// <summary>
@@ -81,11 +89,16 @@ public class GameEngine : Game, IGameContext
         // Update game state
         _gameState.Update(gameTime);
 
+        _eventProcessor.Update(gameTime);
+        _animationPlayer.Update(gameTime);
+
         // Update active map
         if (_mapManager.CurrentMap != null)
         {
             _mapManager.Update(gameTime, _inputManager);
         }
+
+        TryRunCommonEvents();
 
         base.Update(gameTime);
     }
@@ -110,6 +123,7 @@ public class GameEngine : Game, IGameContext
             );
 
             _mapManager.Draw(_spriteBatch, gameTime);
+            _animationPlayer.Draw(_spriteBatch);
 
             _spriteBatch.End();
         }
@@ -155,4 +169,91 @@ public class GameEngine : Game, IGameContext
     /// Get the inventory manager.
     /// </summary>
     public InventoryManager GetInventoryManager() => _inventoryManager;
+
+    public void PlayAnimation(string animationId, Vector2 position)
+    {
+        _animationPlayer.Play(animationId, position);
+    }
+
+    private void LoadDatabase()
+    {
+        _database.LoadFromDirectory("Database");
+        _mapManager.RefreshTilesets();
+    }
+
+    private void ApplySystemConfig()
+    {
+        var systemConfig = _database.SystemConfig;
+        if (systemConfig.WindowWidth > 0 && systemConfig.WindowHeight > 0)
+        {
+            _graphics.PreferredBackBufferWidth = systemConfig.WindowWidth;
+            _graphics.PreferredBackBufferHeight = systemConfig.WindowHeight;
+            _graphics.ApplyChanges();
+        }
+
+        if (!string.IsNullOrWhiteSpace(systemConfig.GameTitle))
+        {
+            Window.Title = systemConfig.GameTitle;
+        }
+
+        _partyManager.Clear();
+        _gameState.PartyMembers.Clear();
+
+        foreach (var actorId in systemConfig.StartingParty)
+        {
+            var actorData = _database.GetActor(actorId);
+            if (actorData == null)
+                continue;
+
+            var classData = !string.IsNullOrEmpty(actorData.ClassId)
+                ? _database.GetClass(actorData.ClassId)
+                : null;
+
+            var actor = new GameActor
+            {
+                ActorId = actorId,
+                ActorData = actorData,
+                ClassData = classData,
+                Database = _database,
+                Level = actorData.InitialLevel
+            };
+
+            var stats = actor.GetCurrentStats();
+            actor.CurrentHp = stats.MaxHp;
+            actor.CurrentMp = stats.MaxMp;
+            actor.CurrentTp = 0;
+
+            _partyManager.AddActor(actor);
+            _gameState.PartyMembers.Add(actorId);
+        }
+
+        _partyManager.Gold = systemConfig.StartingGold;
+        _gameState.PartyGold = systemConfig.StartingGold;
+
+        _gameState.PlayerX = systemConfig.StartingPosition.X;
+        _gameState.PlayerY = systemConfig.StartingPosition.Y;
+
+        if (!string.IsNullOrWhiteSpace(systemConfig.StartingMapId))
+        {
+            LoadMap(systemConfig.StartingMapId);
+        }
+    }
+
+    private void TryRunCommonEvents()
+    {
+        if (_eventProcessor.IsBusy)
+            return;
+
+        foreach (var commonEvent in _database.CommonEvents.Values)
+        {
+            if (commonEvent.Trigger == PixelForge.Shared.Models.Database.CommonEventTrigger.None)
+                continue;
+
+            if (commonEvent.SwitchId.HasValue && !_gameState.GetSwitch(commonEvent.SwitchId.Value))
+                continue;
+
+            _eventProcessor.ExecuteCommonEvent(commonEvent.Id);
+            break;
+        }
+    }
 }

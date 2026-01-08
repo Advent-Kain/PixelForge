@@ -1,0 +1,133 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:PixelForge.Editor.ViewModels"
+        x:Class="PixelForge.Editor.Views.EventEditorWindow"
+        x:DataType="vm:EventEditorViewModel"
+        Title="Event Editor"
+        Width="1100"
+        Height="720"
+        WindowStartupLocation="CenterScreen">
+
+    <Design.DataContext>
+        <vm:EventEditorViewModel/>
+    </Design.DataContext>
+
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="#2D2D2D" Spacing="6" Margin="5">
+            <Button Content="Add Event" Command="{Binding AddEventCommand}" />
+            <Button Content="Remove Event" Command="{Binding RemoveEventCommand}" />
+            <Separator />
+            <Button Content="Add Page" Command="{Binding AddPageCommand}" />
+            <Button Content="Remove Page" Command="{Binding RemovePageCommand}" />
+            <Separator />
+            <Button Content="Add Command" Command="{Binding AddCommandCommand}" />
+            <Button Content="Remove Command" Command="{Binding RemoveCommandCommand}" />
+        </StackPanel>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="240" />
+                <ColumnDefinition Width="4" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="#1E1E1E" Padding="8">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="Events"
+                               FontWeight="Bold"
+                               Margin="0,0,0,8" />
+                    <ListBox ItemsSource="{Binding Events}"
+                             SelectedItem="{Binding SelectedEvent}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Background="#3E3E42" ResizeDirection="Columns" />
+
+            <Grid Grid.Column="2" RowDefinitions="Auto,4,*" Background="#252526">
+                <Border Grid.Row="0" Padding="10">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Event Details" FontWeight="Bold" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Name" Width="60" VerticalAlignment="Center" />
+                            <TextBox Text="{Binding EventName, UpdateSourceTrigger=PropertyChanged}" Width="240" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Position" Width="60" VerticalAlignment="Center" />
+                            <TextBox Text="{Binding PositionX, UpdateSourceTrigger=PropertyChanged}" Width="60" />
+                            <TextBox Text="{Binding PositionY, UpdateSourceTrigger=PropertyChanged}" Width="60" />
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="Note" />
+                            <TextBox Text="{Binding EventNote, UpdateSourceTrigger=PropertyChanged}"
+                                     AcceptsReturn="True"
+                                     Height="60" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <GridSplitter Grid.Row="1" Background="#3E3E42" ResizeDirection="Rows" />
+
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="240" />
+                        <ColumnDefinition Width="4" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Background="#1E1E1E" Padding="8">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Top"
+                                       Text="Pages"
+                                       FontWeight="Bold"
+                                       Margin="0,0,0,8" />
+                            <ListBox ItemsSource="{Binding Pages}"
+                                     SelectedItem="{Binding SelectedPage}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Trigger}" />
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <StackPanel Margin="0,8,0,0" Spacing="6">
+                                <TextBlock Text="Trigger" />
+                                <ComboBox ItemsSource="{Binding TriggerOptions}"
+                                          SelectedItem="{Binding SelectedPage.Trigger}" />
+                                <TextBlock Text="Priority" />
+                                <ComboBox ItemsSource="{Binding PriorityOptions}"
+                                          SelectedItem="{Binding SelectedPage.Priority}" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <GridSplitter Grid.Column="1" Background="#3E3E42" ResizeDirection="Columns" />
+
+                    <Border Grid.Column="2" Background="#1E1E1E" Padding="8">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Top"
+                                       Text="Commands"
+                                       FontWeight="Bold"
+                                       Margin="0,0,0,8" />
+                            <DataGrid ItemsSource="{Binding Commands}"
+                                      SelectedItem="{Binding SelectedCommand}"
+                                      AutoGenerateColumns="False"
+                                      GridLinesVisibility="Horizontal">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Code" Binding="{Binding Code}" Width="80" />
+                                    <DataGridTextColumn Header="Indent" Binding="{Binding Indent}" Width="80" />
+                                    <DataGridTextColumn Header="Parameters" Binding="{Binding ParametersText}" Width="*" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Grid>
+    </DockPanel>
+</Window>
