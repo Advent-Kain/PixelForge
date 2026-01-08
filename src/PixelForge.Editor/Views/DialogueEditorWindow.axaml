@@ -151,10 +151,34 @@
 
                     <!-- Conditions -->
                     <TextBlock Text="Conditions:" FontWeight="Bold" Margin="0,15,0,5"/>
-                    <TextBox Text="{Binding SelectedNode.Conditions}"
-                             AcceptsReturn="True"
-                             Height="60"
-                             Watermark="Condition expressions (one per line)"/>
+                    <Button Content="Add Condition"
+                            Command="{Binding SelectedNode.AddConditionCommand}"
+                            HorizontalAlignment="Left"
+                            Margin="0,0,0,5"/>
+                    <ItemsControl ItemsSource="{Binding SelectedNode.Conditions}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="LightGray"
+                                        BorderThickness="1"
+                                        Padding="5"
+                                        Margin="0,0,0,5">
+                                    <StackPanel>
+                                        <TextBlock Text="Type" FontWeight="Bold"/>
+                                        <ComboBox ItemsSource="{Binding DataContext.ConditionTypes, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                  SelectedItem="{Binding Type}"
+                                                  Margin="0,0,0,5"/>
+                                        <TextBlock Text="Parameter" FontWeight="Bold"/>
+                                        <TextBox Text="{Binding Parameter}" Margin="0,0,0,5"/>
+                                        <TextBlock Text="Value" FontWeight="Bold"/>
+                                        <TextBox Text="{Binding Value}" Margin="0,0,0,5"/>
+                                        <Button Content="Remove"
+                                                Command="{Binding DataContext.SelectedNode.RemoveConditionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
 
                     <!-- Actions -->
                     <TextBlock Text="Actions (Advanced):" FontWeight="Bold" Margin="0,15,0,5"/>
