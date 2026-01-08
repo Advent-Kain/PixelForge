@@ -89,12 +89,22 @@ A single layer in a map.
 - 102: Show Choices
 - 103: Input Number
 - 111: Conditional Branch
+- 112: Loop
+- 113: Break Loop
+- 118: Label
+- 119: Jump to Label
 - 121: Control Switches
 - 122: Control Variables
 - 201: Transfer Player
+- 221: Fadeout Screen
+- 222: Fadein Screen
+- 224: Flash Screen
+- 225: Shake Screen
+- 241: Play BGM
 - 301: Battle Processing
 - 302: Shop Processing
 - 355: Script (C# code)
+- 413: Repeat Above
 
 ## Custom Scripts
 
