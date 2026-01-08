@@ -615,7 +615,7 @@ If you find PixelForge useful, please consider:
 
 **PixelForge - Empowering 2D Game Development with C# and AI**
 
-Made with ❤️ by the PixelForge Team
+Made with ❤️ by the PixelForge Team (Ashram Kain + Caude Code & CodEx)
 
 [Documentation](docs/) • [Getting Started](docs/GETTING_STARTED.md) • [API Reference](docs/API_REFERENCE.md)
 
