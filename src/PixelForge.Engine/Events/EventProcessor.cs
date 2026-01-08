@@ -33,6 +33,7 @@ public class EventProcessor
         RegisterHandler(101, new ShowMessageHandler());
         RegisterHandler(102, new ShowChoicesHandler());
         RegisterHandler(103, new InputNumberHandler());
+        RegisterHandler(117, new CommonEventHandler());
         RegisterHandler(111, new ConditionalBranchHandler());
         RegisterHandler(112, new LoopHandler());
         RegisterHandler(113, new BreakLoopHandler());
@@ -50,6 +51,7 @@ public class EventProcessor
         RegisterHandler(222, new FadeinScreenHandler());
         RegisterHandler(224, new FlashScreenHandler());
         RegisterHandler(225, new ShakeScreenHandler());
+        RegisterHandler(212, new ShowAnimationHandler());
         RegisterHandler(241, new PlayBgmHandler());
         RegisterHandler(250, new PlaySeHandler());
         RegisterHandler(301, new BattleProcessingHandler());
@@ -75,8 +77,25 @@ public class EventProcessor
         if (activePage == null)
             return;
 
+        StartCommandList(activePage.Commands);
+    }
+
+    /// <summary>
+    /// Execute a common event by ID.
+    /// </summary>
+    public void ExecuteCommonEvent(string commonEventId)
+    {
+        var commonEvent = _game.GetDatabase().GetCommonEvent(commonEventId);
+        if (commonEvent == null)
+            return;
+
+        StartCommandList(commonEvent.Commands);
+    }
+
+    private void StartCommandList(List<EventCommand> commands)
+    {
         _commands.Clear();
-        _commands.AddRange(activePage.Commands);
+        _commands.AddRange(commands);
         _labelIndices = BuildLabelIndex(_commands);
         _loopStack.Clear();
         _currentCommand = null;
