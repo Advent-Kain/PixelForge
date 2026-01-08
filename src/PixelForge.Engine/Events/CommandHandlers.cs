@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Media;
+using PixelForge.Engine.Scripting;
 using PixelForge.Engine.Core;
 using PixelForge.Engine.UI;
 using PixelForge.Shared.Models;
@@ -983,6 +984,14 @@ public class ScriptHandler : IEventCommandHandler
 
     public void Execute(EventContext context)
     {
+        var script = context.Command.Parameters[0].ToString() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(script))
+        {
+            _complete = true;
+            return;
+        }
+
+        ScriptRuntime.Instance.TryExecuteScript(script, context);
         var script = EventCommandParameterReader.GetString(context.Command.Parameters.ElementAtOrDefault(0), string.Empty);
 
         if (context.Game is IEventCommandHost host)
