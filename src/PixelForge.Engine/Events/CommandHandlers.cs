@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework.Media;
+using PixelForge.Engine.Scripting;
 using PixelForge.Engine.UI;
 
 namespace PixelForge.Engine.Events;
@@ -486,7 +487,13 @@ public class ScriptHandler : IEventCommandHandler
     public void Execute(EventContext context)
     {
         var script = context.Command.Parameters[0].ToString() ?? string.Empty;
-        // TODO: Execute C# script
+        if (string.IsNullOrWhiteSpace(script))
+        {
+            _complete = true;
+            return;
+        }
+
+        ScriptRuntime.Instance.TryExecuteScript(script, context);
         _complete = true;
     }
 
