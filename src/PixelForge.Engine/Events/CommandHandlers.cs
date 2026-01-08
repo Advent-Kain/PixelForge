@@ -1,3 +1,4 @@
+using Microsoft.Xna.Framework.Media;
 using PixelForge.Engine.UI;
 
 namespace PixelForge.Engine.Events;
@@ -90,6 +91,32 @@ public class ConditionalBranchHandler : IEventCommandHandler
 }
 
 /// <summary>
+/// Loop command handler (Code: 112).
+/// </summary>
+public class LoopHandler : IEventCommandHandler
+{
+    public void Execute(EventContext context)
+    {
+        context.Processor.PushLoopStart(context.Command.Indent);
+    }
+
+    public bool IsComplete() => true;
+}
+
+/// <summary>
+/// Break Loop command handler (Code: 113).
+/// </summary>
+public class BreakLoopHandler : IEventCommandHandler
+{
+    public void Execute(EventContext context)
+    {
+        context.Processor.BreakLoop();
+    }
+
+    public bool IsComplete() => true;
+}
+
+/// <summary>
 /// Control Switches command handler (Code: 121).
 /// </summary>
 public class ControlSwitchesHandler : IEventCommandHandler
@@ -158,6 +185,39 @@ public class ControlSelfSwitchHandler : IEventCommandHandler
         var eventId = "event_id";
 
         context.Game.GetGameState().SetSelfSwitch(mapId, eventId, selfSwitch, value);
+    }
+
+    public bool IsComplete() => true;
+}
+
+/// <summary>
+/// Label command handler (Code: 118).
+/// </summary>
+public class LabelHandler : IEventCommandHandler
+{
+    public void Execute(EventContext context)
+    {
+        // Labels are used for flow control and do not execute logic.
+    }
+
+    public bool IsComplete() => true;
+}
+
+/// <summary>
+/// Jump to Label command handler (Code: 119).
+/// </summary>
+public class JumpToLabelHandler : IEventCommandHandler
+{
+    public void Execute(EventContext context)
+    {
+        var label = context.Command.Parameters.Count > 0
+            ? context.Command.Parameters[0]?.ToString() ?? string.Empty
+            : string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(label))
+        {
+            context.Processor.JumpToLabel(label);
+        }
     }
 
     public bool IsComplete() => true;
@@ -252,6 +312,138 @@ public class SetMovementRouteHandler : IEventCommandHandler
 }
 
 /// <summary>
+/// Fadeout Screen command handler (Code: 221).
+/// </summary>
+public class FadeoutScreenHandler : IEventCommandHandler
+{
+    public void Execute(EventContext context)
+    {
+        var durationFrames = context.Command.Parameters.Count > 0
+            ? Convert.ToInt32(context.Command.Parameters[0])
+            : 0;
+
+        context.Processor.WaitFor(TimeSpan.FromMilliseconds(durationFrames * (1000.0 / 60.0)));
+    }
+
+    public bool IsComplete() => true;
+}
+
+/// <summary>
+/// Fadein Screen command handler (Code: 222).
+/// </summary>
+public class FadeinScreenHandler : IEventCommandHandler
+{
+    public void Execute(EventContext context)
+    {
+        var durationFrames = context.Command.Parameters.Count > 0
+            ? Convert.ToInt32(context.Command.Parameters[0])
+            : 0;
+
+        context.Processor.WaitFor(TimeSpan.FromMilliseconds(durationFrames * (1000.0 / 60.0)));
+    }
+
+    public bool IsComplete() => true;
+}
+
+/// <summary>
+/// Flash Screen command handler (Code: 224).
+/// </summary>
+public class FlashScreenHandler : IEventCommandHandler
+{
+    public void Execute(EventContext context)
+    {
+        var durationFrames = context.Command.Parameters.Count > 1
+            ? Convert.ToInt32(context.Command.Parameters[1])
+            : 0;
+
+        context.Processor.WaitFor(TimeSpan.FromMilliseconds(durationFrames * (1000.0 / 60.0)));
+    }
+
+    public bool IsComplete() => true;
+}
+
+/// <summary>
+/// Shake Screen command handler (Code: 225).
+/// </summary>
+public class ShakeScreenHandler : IEventCommandHandler
+{
+    public void Execute(EventContext context)
+    {
+        var durationFrames = context.Command.Parameters.Count > 2
+            ? Convert.ToInt32(context.Command.Parameters[2])
+            : 0;
+
+        context.Processor.WaitFor(TimeSpan.FromMilliseconds(durationFrames * (1000.0 / 60.0)));
+    }
+
+    public bool IsComplete() => true;
+}
+
+/// <summary>
+/// Play BGM command handler (Code: 241).
+/// </summary>
+public class PlayBgmHandler : IEventCommandHandler
+{
+    public void Execute(EventContext context)
+    {
+        var path = context.Command.Parameters.Count > 0
+            ? context.Command.Parameters[0]?.ToString() ?? string.Empty
+            : string.Empty;
+        var volume = context.Command.Parameters.Count > 1
+            ? Convert.ToSingle(context.Command.Parameters[1])
+            : 100f;
+
+        if (string.IsNullOrWhiteSpace(path))
+            return;
+
+        var song = context.Game.GetResourceManager().LoadSong(path);
+        if (song == null)
+            return;
+
+        MediaPlayer.Volume = Math.Clamp(volume / 100f, 0f, 1f);
+        MediaPlayer.Play(song);
+    }
+
+    public bool IsComplete() => true;
+}
+
+/// <summary>
+/// Play SE command handler (Code: 250).
+/// </summary>
+public class PlaySeHandler : IEventCommandHandler
+{
+    public void Execute(EventContext context)
+    {
+        var path = context.Command.Parameters.Count > 0
+            ? context.Command.Parameters[0]?.ToString() ?? string.Empty
+            : string.Empty;
+        var volume = context.Command.Parameters.Count > 1
+            ? Convert.ToSingle(context.Command.Parameters[1])
+            : 100f;
+        var pitch = context.Command.Parameters.Count > 2
+            ? Convert.ToSingle(context.Command.Parameters[2])
+            : 0f;
+        var pan = context.Command.Parameters.Count > 3
+            ? Convert.ToSingle(context.Command.Parameters[3])
+            : 0f;
+
+        if (string.IsNullOrWhiteSpace(path))
+            return;
+
+        var effect = context.Game.GetResourceManager().LoadSoundEffect(path);
+        if (effect == null)
+            return;
+
+        var clampedVolume = Math.Clamp(volume / 100f, 0f, 1f);
+        var clampedPitch = Math.Clamp(pitch, -1f, 1f);
+        var clampedPan = Math.Clamp(pan, -1f, 1f);
+        effect.Play(clampedVolume, clampedPitch, clampedPan);
+    }
+
+    public bool IsComplete() => true;
+}
+
+/// <summary>
 /// Battle Processing command handler (Code: 301).
 /// </summary>
 public class BattleProcessingHandler : IEventCommandHandler
@@ -299,4 +491,17 @@ public class ScriptHandler : IEventCommandHandler
     }
 
     public bool IsComplete() => _complete;
+}
+
+/// <summary>
+/// Repeat Above command handler (Code: 413).
+/// </summary>
+public class RepeatAboveHandler : IEventCommandHandler
+{
+    public void Execute(EventContext context)
+    {
+        context.Processor.RepeatLoop(context.Command.Indent);
+    }
+
+    public bool IsComplete() => true;
 }

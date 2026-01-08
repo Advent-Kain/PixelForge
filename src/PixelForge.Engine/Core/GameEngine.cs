@@ -10,7 +10,7 @@ namespace PixelForge.Engine.Core;
 /// <summary>
 /// Main game engine class that manages the game loop and core systems.
 /// </summary>
-public class GameEngine : Game
+public class GameEngine : Game, IGameContext
 {
     private readonly GraphicsDeviceManager _graphics;
     private SpriteBatch? _spriteBatch;

@@ -375,6 +375,10 @@ Common event command codes:
 - **102**: Show Choices
 - **103**: Input Number
 - **111**: Conditional Branch
+- **112**: Loop
+- **113**: Break Loop
+- **118**: Label
+- **119**: Jump to Label
 - **121**: Control Switches
 - **122**: Control Variables
 - **123**: Control Self Switch
@@ -385,9 +389,15 @@ Common event command codes:
 - **203**: Set Event Location
 - **204**: Scroll Map
 - **205**: Set Movement Route
+- **221**: Fadeout Screen
+- **222**: Fadein Screen
+- **224**: Flash Screen
+- **225**: Shake Screen
+- **241**: Play BGM
 - **301**: Battle Processing
 - **302**: Shop Processing
 - **355**: Script (C# code execution)
+- **413**: Repeat Above
 
 ---
 

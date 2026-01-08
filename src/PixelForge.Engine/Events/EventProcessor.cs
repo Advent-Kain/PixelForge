@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using PixelForge.Shared.Models;
 using PixelForge.Engine.Core;
+using System.Threading.Tasks;
 
 namespace PixelForge.Engine.Events;
 
@@ -9,13 +10,16 @@ namespace PixelForge.Engine.Events;
 /// </summary>
 public class EventProcessor
 {
-    private readonly GameEngine _game;
-    private readonly Queue<EventCommand> _commandQueue = new();
+    private readonly IGameContext _game;
+    private readonly List<EventCommand> _commands = new();
+    private readonly Stack<LoopFrame> _loopStack = new();
+    private Dictionary<string, int> _labelIndices = new(StringComparer.Ordinal);
     private EventCommand? _currentCommand;
     private bool _waiting;
+    private int _commandIndex;
     private readonly Dictionary<int, IEventCommandHandler> _handlers = new();
 
-    public EventProcessor(GameEngine game)
+    public EventProcessor(IGameContext game)
     {
         _game = game;
         RegisterDefaultHandlers();
@@ -30,17 +34,28 @@ public class EventProcessor
         RegisterHandler(102, new ShowChoicesHandler());
         RegisterHandler(103, new InputNumberHandler());
         RegisterHandler(111, new ConditionalBranchHandler());
+        RegisterHandler(112, new LoopHandler());
+        RegisterHandler(113, new BreakLoopHandler());
         RegisterHandler(121, new ControlSwitchesHandler());
         RegisterHandler(122, new ControlVariablesHandler());
         RegisterHandler(123, new ControlSelfSwitchHandler());
         RegisterHandler(125, new ChangeGoldHandler());
         RegisterHandler(126, new ChangeItemsHandler());
+        RegisterHandler(118, new LabelHandler());
+        RegisterHandler(119, new JumpToLabelHandler());
         RegisterHandler(201, new TransferPlayerHandler());
         RegisterHandler(204, new ScrollMapHandler());
         RegisterHandler(205, new SetMovementRouteHandler());
+        RegisterHandler(221, new FadeoutScreenHandler());
+        RegisterHandler(222, new FadeinScreenHandler());
+        RegisterHandler(224, new FlashScreenHandler());
+        RegisterHandler(225, new ShakeScreenHandler());
+        RegisterHandler(241, new PlayBgmHandler());
+        RegisterHandler(250, new PlaySeHandler());
         RegisterHandler(301, new BattleProcessingHandler());
         RegisterHandler(302, new ShopProcessingHandler());
         RegisterHandler(355, new ScriptHandler());
+        RegisterHandler(413, new RepeatAboveHandler());
     }
 
     /// <summary>
@@ -60,10 +75,13 @@ public class EventProcessor
         if (activePage == null)
             return;
 
-        foreach (var command in activePage.Commands)
-        {
-            _commandQueue.Enqueue(command);
-        }
+        _commands.Clear();
+        _commands.AddRange(activePage.Commands);
+        _labelIndices = BuildLabelIndex(_commands);
+        _loopStack.Clear();
+        _currentCommand = null;
+        _waiting = false;
+        _commandIndex = 0;
     }
 
     /// <summary>
@@ -87,9 +105,10 @@ public class EventProcessor
             }
         }
 
-        if (_commandQueue.Count > 0)
+        if (_commandIndex < _commands.Count)
         {
-            _currentCommand = _commandQueue.Dequeue();
+            _currentCommand = _commands[_commandIndex];
+            _commandIndex++;
             ExecuteCommand(_currentCommand);
         }
     }
@@ -167,9 +186,101 @@ public class EventProcessor
     }
 
     /// <summary>
+    /// Set waiting for a duration.
+    /// </summary>
+    public void WaitFor(TimeSpan duration)
+    {
+        if (duration <= TimeSpan.Zero)
+            return;
+
+        _waiting = true;
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(duration);
+            _waiting = false;
+        });
+    }
+
+    /// <summary>
+    /// Jump to a label if it exists.
+    /// </summary>
+    public void JumpToLabel(string label)
+    {
+        if (_labelIndices.TryGetValue(label, out var index))
+        {
+            _commandIndex = Math.Clamp(index + 1, 0, _commands.Count);
+        }
+    }
+
+    /// <summary>
+    /// Mark the start of a loop.
+    /// </summary>
+    public void PushLoopStart(int indent)
+    {
+        _loopStack.Push(new LoopFrame { StartIndex = _commandIndex, Indent = indent });
+    }
+
+    /// <summary>
+    /// Repeat the current loop.
+    /// </summary>
+    public void RepeatLoop(int indent)
+    {
+        if (_loopStack.TryPeek(out var frame) && frame.Indent == indent)
+        {
+            _commandIndex = Math.Clamp(frame.StartIndex, 0, _commands.Count);
+        }
+    }
+
+    /// <summary>
+    /// Break out of the current loop.
+    /// </summary>
+    public void BreakLoop()
+    {
+        if (!_loopStack.TryPop(out var frame))
+            return;
+
+        for (int i = _commandIndex; i < _commands.Count; i++)
+        {
+            if (_commands[i].Code == 413 && _commands[i].Indent == frame.Indent)
+            {
+                _commandIndex = Math.Clamp(i + 1, 0, _commands.Count);
+                return;
+            }
+        }
+
+        _commandIndex = _commands.Count;
+    }
+
+    /// <summary>
     /// Check if processor is busy.
     /// </summary>
-    public bool IsBusy => _currentCommand != null || _commandQueue.Count > 0;
+    public bool IsBusy => _currentCommand != null || _commandIndex < _commands.Count;
+
+    private static Dictionary<string, int> BuildLabelIndex(IEnumerable<EventCommand> commands)
+    {
+        var labels = new Dictionary<string, int>(StringComparer.Ordinal);
+        int index = 0;
+        foreach (var command in commands)
+        {
+            if (command.Code == 118 && command.Parameters.Count > 0)
+            {
+                var label = command.Parameters[0]?.ToString();
+                if (!string.IsNullOrWhiteSpace(label) && !labels.ContainsKey(label))
+                {
+                    labels[label] = index;
+                }
+            }
+            index++;
+        }
+
+        return labels;
+    }
+
+    private readonly record struct LoopFrame
+    {
+        public required int StartIndex { get; init; }
+        public required int Indent { get; init; }
+    }
 }
 
 /// <summary>
@@ -177,7 +288,7 @@ public class EventProcessor
 /// </summary>
 public class EventContext
 {
-    public required GameEngine Game { get; init; }
+    public required IGameContext Game { get; init; }
     public required EventCommand Command { get; init; }
     public required EventProcessor Processor { get; init; }
 }
