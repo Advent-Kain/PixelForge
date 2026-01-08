@@ -1,8 +1,10 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using PixelForge.Shared.Models;
+using PixelForge.Shared.Models.Database;
 using PixelForge.Engine.Core;
 using PixelForge.Engine.Graphics;
+using PixelForge.Engine.RPG;
 using System.Text.Json;
 
 namespace PixelForge.Engine.Map;
@@ -15,16 +17,18 @@ public class MapManager
     private readonly ResourceManager _resourceManager;
     private readonly TileRenderer _tileRenderer;
     private readonly GameState _gameState;
+    private readonly GameDatabase _database;
     private readonly Dictionary<string, MapData> _loadedMaps = new();
 
     public MapData? CurrentMap { get; private set; }
     public Vector2 CameraPosition { get; set; }
 
-    public MapManager(ResourceManager resourceManager, GameState gameState)
+    public MapManager(ResourceManager resourceManager, GameState gameState, GameDatabase database)
     {
         _resourceManager = resourceManager;
         _tileRenderer = new TileRenderer(resourceManager);
         _gameState = gameState;
+        _database = database;
     }
 
     /// <summary>
@@ -36,6 +40,7 @@ public class MapManager
         if (_loadedMaps.TryGetValue(mapId, out var cachedMap))
         {
             CurrentMap = cachedMap;
+            RegisterTilesets(CurrentMap);
             return;
         }
 
@@ -46,6 +51,7 @@ public class MapManager
         {
             // Create a default map if file doesn't exist
             CurrentMap = MapData.CreateDefault();
+            RegisterTilesets(CurrentMap);
             return;
         }
 
@@ -58,12 +64,14 @@ public class MapManager
             {
                 _loadedMaps[mapId] = map;
                 CurrentMap = map;
+                RegisterTilesets(CurrentMap);
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error loading map {mapId}: {ex.Message}");
             CurrentMap = MapData.CreateDefault();
+            RegisterTilesets(CurrentMap);
         }
     }
 
@@ -86,6 +94,10 @@ public class MapManager
         File.WriteAllText(mapPath, json);
 
         _loadedMaps[mapId] = map;
+        if (CurrentMap?.Id == map.Id)
+        {
+            RegisterTilesets(CurrentMap);
+        }
     }
 
     /// <summary>
@@ -127,6 +139,42 @@ public class MapManager
 
         // Draw events
         DrawEvents(spriteBatch);
+    }
+
+    private void RegisterTilesets(MapData? map)
+    {
+        _tileRenderer.ClearTilesets();
+
+        if (map == null)
+            return;
+
+        var tilesetIds = new HashSet<int>();
+        foreach (var layer in map.Layers)
+        {
+            if (layer.Type != LayerType.Tile)
+                continue;
+
+            for (int y = 0; y < layer.Height; y++)
+            {
+                for (int x = 0; x < layer.Width; x++)
+                {
+                    var tile = layer.GetTile(x, y);
+                    if (tile == null || tile.IsEmpty)
+                        continue;
+
+                    tilesetIds.Add(tile.TilesetId);
+                }
+            }
+        }
+
+        foreach (var tilesetId in tilesetIds)
+        {
+            var tileset = _database.GetTileset(tilesetId);
+            if (tileset != null)
+            {
+                _tileRenderer.RegisterTileset(tileset);
+            }
+        }
     }
 
     /// <summary>

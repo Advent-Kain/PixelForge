@@ -21,7 +21,6 @@ public class GameEngine : Game, IGameContext
     private readonly PartyManager _partyManager;
     private readonly InventoryManager _inventoryManager;
     private readonly GameDatabase _database;
-    private readonly InventoryManager _inventoryManager;
 
     public GameEngine()
     {
@@ -32,10 +31,10 @@ public class GameEngine : Game, IGameContext
         _gameState = new GameState();
         _inputManager = new InputManager();
         _resourceManager = new ResourceManager(Content);
-        _mapManager = new MapManager(_resourceManager);
+        _database = new GameDatabase();
+        _mapManager = new MapManager(_resourceManager, _gameState, _database);
         _partyManager = new PartyManager();
         _inventoryManager = new InventoryManager();
-        _database = new GameDatabase();
 
         // Default window size
         _graphics.PreferredBackBufferWidth = 1280;

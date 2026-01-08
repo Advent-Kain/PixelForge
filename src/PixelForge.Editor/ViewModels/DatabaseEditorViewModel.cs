@@ -23,6 +23,7 @@ public partial class DatabaseEditorViewModel : ViewModelBase
     private const string EnemiesFileName = "enemies.json";
     private const string TroopsFileName = "troops.json";
     private const string StatesFileName = "states.json";
+    private const string TilesetsFileName = "tilesets.json";
 
     [ObservableProperty]
     private int _selectedTab;
@@ -57,6 +58,12 @@ public partial class DatabaseEditorViewModel : ViewModelBase
 
     // States
     public ObservableCollection<State> States { get; } = new();
+
+    // Tilesets
+    [ObservableProperty]
+    private Tileset? _selectedTileset;
+
+    public ObservableCollection<Tileset> Tilesets { get; } = new();
 
     public DatabaseEditorViewModel()
     {
@@ -141,6 +148,19 @@ public partial class DatabaseEditorViewModel : ViewModelBase
             }
         };
         Items.Add(item);
+
+        // Add sample tileset
+        var tileset = new Tileset
+        {
+            Id = 1,
+            Name = "Default Tileset",
+            ImagePath = "Assets/Graphics/Tilesets/Default.png",
+            TileWidth = 48,
+            TileHeight = 48,
+            Columns = 8,
+            Rows = 8
+        };
+        Tilesets.Add(tileset);
     }
 
     [RelayCommand]
@@ -216,6 +236,28 @@ public partial class DatabaseEditorViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void NewTileset()
+    {
+        var tileset = new Tileset
+        {
+            Id = Tilesets.Count == 0 ? 1 : Tilesets.Max(t => t.Id) + 1,
+            Name = $"Tileset{Tilesets.Count + 1:D3}"
+        };
+        Tilesets.Add(tileset);
+        SelectedTileset = tileset;
+    }
+
+    [RelayCommand]
+    private void DeleteTileset()
+    {
+        if (SelectedTileset != null)
+        {
+            Tilesets.Remove(SelectedTileset);
+            SelectedTileset = Tilesets.FirstOrDefault();
+        }
+    }
+
+    [RelayCommand]
     private void Save()
     {
         var databaseDirectory = ProjectManager.GetDatabaseDirectory();
@@ -233,6 +275,7 @@ public partial class DatabaseEditorViewModel : ViewModelBase
         SaveCollection(EnemiesFileName, Enemies);
         SaveCollection(TroopsFileName, Troops);
         SaveCollection(StatesFileName, States);
+        SaveCollection(TilesetsFileName, Tilesets);
     }
 
     [RelayCommand]
@@ -260,7 +303,8 @@ public partial class DatabaseEditorViewModel : ViewModelBase
             ArmorsFileName,
             EnemiesFileName,
             TroopsFileName,
-            StatesFileName
+            StatesFileName,
+            TilesetsFileName
         };
 
         var hasAnyFile = files.Any(fileName => File.Exists(Path.Combine(databaseDirectory, fileName)));
@@ -276,11 +320,13 @@ public partial class DatabaseEditorViewModel : ViewModelBase
         LoadCollection(EnemiesFileName, Enemies);
         LoadCollection(TroopsFileName, Troops);
         LoadCollection(StatesFileName, States);
+        LoadCollection(TilesetsFileName, Tilesets);
 
         SelectedActor = Actors.FirstOrDefault();
         SelectedSkill = Skills.FirstOrDefault();
         SelectedItem = Items.FirstOrDefault();
         SelectedEnemy = Enemies.FirstOrDefault();
+        SelectedTileset = Tilesets.FirstOrDefault();
 
         return true;
     }
