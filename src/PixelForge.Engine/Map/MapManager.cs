@@ -3,6 +3,8 @@ using Microsoft.Xna.Framework.Graphics;
 using PixelForge.Shared.Models;
 using PixelForge.Engine.Core;
 using PixelForge.Engine.Graphics;
+using PixelForge.Engine.Events;
+using PixelForge.Engine.RPG;
 using System.Text.Json;
 
 namespace PixelForge.Engine.Map;
@@ -15,16 +17,29 @@ public class MapManager
     private readonly ResourceManager _resourceManager;
     private readonly TileRenderer _tileRenderer;
     private readonly GameState _gameState;
+    private readonly GameDatabase _database;
+    private readonly EventProcessor _eventProcessor;
     private readonly Dictionary<string, MapData> _loadedMaps = new();
 
     public MapData? CurrentMap { get; private set; }
     public Vector2 CameraPosition { get; set; }
 
-    public MapManager(ResourceManager resourceManager, GameState gameState)
+    public MapManager(ResourceManager resourceManager, GameState gameState, GameDatabase database, EventProcessor eventProcessor)
     {
         _resourceManager = resourceManager;
         _tileRenderer = new TileRenderer(resourceManager);
         _gameState = gameState;
+        _database = database;
+        _eventProcessor = eventProcessor;
+    }
+
+    /// <summary>
+    /// Refresh tilesets from the game database.
+    /// </summary>
+    public void RefreshTilesets()
+    {
+        _tileRenderer.ClearTilesets();
+        _tileRenderer.RegisterTilesets(_database.Tilesets.Values);
     }
 
     /// <summary>
@@ -32,6 +47,7 @@ public class MapManager
     /// </summary>
     public void LoadMap(string mapId)
     {
+        RefreshTilesets();
         // Check cache first
         if (_loadedMaps.TryGetValue(mapId, out var cachedMap))
         {
@@ -97,7 +113,18 @@ public class MapManager
             return;
 
         // Update events, animations, etc.
-        // TODO: Implement event processing
+        if (!_eventProcessor.IsBusy)
+        {
+            var autorunEvent = CurrentMap.Events
+                .Select(evt => (Event: evt, Page: GetActivePage(evt)))
+                .FirstOrDefault(entry => entry.Page != null &&
+                    (entry.Page.Trigger == EventTrigger.Autorun || entry.Page.Trigger == EventTrigger.Parallel));
+
+            if (autorunEvent.Page != null)
+            {
+                _eventProcessor.ExecuteEvent(autorunEvent.Event);
+            }
+        }
     }
 
     /// <summary>
