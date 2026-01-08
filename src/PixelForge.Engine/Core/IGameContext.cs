@@ -7,5 +7,7 @@ public interface IGameContext
 {
     GameState GetGameState();
     ResourceManager GetResourceManager();
+    RPG.GameDatabase GetDatabase();
     void LoadMap(string mapId);
+    void PlayAnimation(string animationId, Microsoft.Xna.Framework.Vector2 position);
 }

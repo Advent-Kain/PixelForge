@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PixelForge.Editor.Services;
+using PixelForge.Shared.Models;
 using PixelForge.Shared.Models.Database;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -23,6 +24,10 @@ public partial class DatabaseEditorViewModel : ViewModelBase
     private const string EnemiesFileName = "enemies.json";
     private const string TroopsFileName = "troops.json";
     private const string StatesFileName = "states.json";
+    private const string TilesetsFileName = "tilesets.json";
+    private const string AnimationsFileName = "animations.json";
+    private const string SystemConfigFileName = "system.json";
+    private const string CommonEventsFileName = "commonEvents.json";
 
     [ObservableProperty]
     private int _selectedTab;
@@ -57,6 +62,28 @@ public partial class DatabaseEditorViewModel : ViewModelBase
 
     // States
     public ObservableCollection<State> States { get; } = new();
+
+    // Tilesets
+    [ObservableProperty]
+    private Tileset? _selectedTileset;
+
+    public ObservableCollection<Tileset> Tilesets { get; } = new();
+
+    // Animations
+    [ObservableProperty]
+    private Animation? _selectedAnimation;
+
+    public ObservableCollection<Animation> Animations { get; } = new();
+
+    // Common Events
+    [ObservableProperty]
+    private CommonEvent? _selectedCommonEvent;
+
+    public ObservableCollection<CommonEvent> CommonEvents { get; } = new();
+
+    // System Config
+    [ObservableProperty]
+    private SystemConfig _systemConfig = new();
 
     public DatabaseEditorViewModel()
     {
@@ -141,6 +168,50 @@ public partial class DatabaseEditorViewModel : ViewModelBase
             }
         };
         Items.Add(item);
+
+        var tileset = new Tileset
+        {
+            Id = 1,
+            Name = "Base Tileset",
+            ImagePath = "Graphics/Tilesets/Base.png",
+            TileWidth = 48,
+            TileHeight = 48
+        };
+        Tilesets.Add(tileset);
+
+        var animation = new Animation
+        {
+            Name = "Sparkle",
+            ImagePath = "Graphics/Animations/Sparkle.png",
+            FrameWidth = 192,
+            FrameHeight = 192,
+            FrameCount = 8,
+            FrameDuration = 0.08f
+        };
+        Animations.Add(animation);
+
+        var commonEvent = new CommonEvent
+        {
+            Name = "Show Greeting",
+            Commands = new List<EventCommand>
+            {
+                new EventCommand
+                {
+                    Code = 101,
+                    Parameters = new List<object> { "Hello from a common event!" }
+                }
+            }
+        };
+        CommonEvents.Add(commonEvent);
+
+        SystemConfig = new SystemConfig
+        {
+            GameTitle = "PixelForge Game",
+            StartingMapId = "Map001",
+            StartingPosition = new Vector2Int(0, 0),
+            StartingParty = Actors.Select(a => a.Id).ToList(),
+            StartingGold = 100
+        };
     }
 
     [RelayCommand]
@@ -216,6 +287,64 @@ public partial class DatabaseEditorViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void NewTileset()
+    {
+        var tileset = new Tileset
+        {
+            Id = Tilesets.Count > 0 ? Tilesets.Max(t => t.Id) + 1 : 1,
+            Name = $"Tileset{Tilesets.Count + 1:D3}"
+        };
+        Tilesets.Add(tileset);
+        SelectedTileset = tileset;
+    }
+
+    [RelayCommand]
+    private void DeleteTileset()
+    {
+        if (SelectedTileset != null)
+        {
+            Tilesets.Remove(SelectedTileset);
+            SelectedTileset = Tilesets.FirstOrDefault();
+        }
+    }
+
+    [RelayCommand]
+    private void NewAnimation()
+    {
+        var animation = new Animation { Name = $"Animation{Animations.Count + 1:D3}" };
+        Animations.Add(animation);
+        SelectedAnimation = animation;
+    }
+
+    [RelayCommand]
+    private void DeleteAnimation()
+    {
+        if (SelectedAnimation != null)
+        {
+            Animations.Remove(SelectedAnimation);
+            SelectedAnimation = Animations.FirstOrDefault();
+        }
+    }
+
+    [RelayCommand]
+    private void NewCommonEvent()
+    {
+        var commonEvent = new CommonEvent { Name = $"CommonEvent{CommonEvents.Count + 1:D3}" };
+        CommonEvents.Add(commonEvent);
+        SelectedCommonEvent = commonEvent;
+    }
+
+    [RelayCommand]
+    private void DeleteCommonEvent()
+    {
+        if (SelectedCommonEvent != null)
+        {
+            CommonEvents.Remove(SelectedCommonEvent);
+            SelectedCommonEvent = CommonEvents.FirstOrDefault();
+        }
+    }
+
+    [RelayCommand]
     private void Save()
     {
         var databaseDirectory = ProjectManager.GetDatabaseDirectory();
@@ -233,6 +362,10 @@ public partial class DatabaseEditorViewModel : ViewModelBase
         SaveCollection(EnemiesFileName, Enemies);
         SaveCollection(TroopsFileName, Troops);
         SaveCollection(StatesFileName, States);
+        SaveCollection(TilesetsFileName, Tilesets);
+        SaveCollection(AnimationsFileName, Animations);
+        SaveCollection(CommonEventsFileName, CommonEvents);
+        SaveSingle(SystemConfigFileName, SystemConfig);
     }
 
     [RelayCommand]
@@ -260,7 +393,11 @@ public partial class DatabaseEditorViewModel : ViewModelBase
             ArmorsFileName,
             EnemiesFileName,
             TroopsFileName,
-            StatesFileName
+            StatesFileName,
+            TilesetsFileName,
+            AnimationsFileName,
+            SystemConfigFileName,
+            CommonEventsFileName
         };
 
         var hasAnyFile = files.Any(fileName => File.Exists(Path.Combine(databaseDirectory, fileName)));
@@ -276,11 +413,18 @@ public partial class DatabaseEditorViewModel : ViewModelBase
         LoadCollection(EnemiesFileName, Enemies);
         LoadCollection(TroopsFileName, Troops);
         LoadCollection(StatesFileName, States);
+        LoadCollection(TilesetsFileName, Tilesets);
+        LoadCollection(AnimationsFileName, Animations);
+        LoadCollection(CommonEventsFileName, CommonEvents);
+        SystemConfig = LoadSingle(SystemConfigFileName) ?? new SystemConfig();
 
         SelectedActor = Actors.FirstOrDefault();
         SelectedSkill = Skills.FirstOrDefault();
         SelectedItem = Items.FirstOrDefault();
         SelectedEnemy = Enemies.FirstOrDefault();
+        SelectedTileset = Tilesets.FirstOrDefault();
+        SelectedAnimation = Animations.FirstOrDefault();
+        SelectedCommonEvent = CommonEvents.FirstOrDefault();
 
         return true;
     }
@@ -314,5 +458,30 @@ public partial class DatabaseEditorViewModel : ViewModelBase
         {
             target.Add(item);
         }
+    }
+
+    private void SaveSingle<T>(string fileName, T item)
+    {
+        var databaseDirectory = ProjectManager.GetDatabaseDirectory();
+        if (databaseDirectory == null)
+            return;
+
+        var filePath = Path.Combine(databaseDirectory, fileName);
+        var json = JsonSerializer.Serialize(item, JsonOptions);
+        File.WriteAllText(filePath, json);
+    }
+
+    private T? LoadSingle<T>(string fileName)
+    {
+        var databaseDirectory = ProjectManager.GetDatabaseDirectory();
+        if (databaseDirectory == null)
+            return default;
+
+        var filePath = Path.Combine(databaseDirectory, fileName);
+        if (!File.Exists(filePath))
+            return default;
+
+        var json = File.ReadAllText(filePath);
+        return JsonSerializer.Deserialize<T>(json, JsonOptions);
     }
 }
