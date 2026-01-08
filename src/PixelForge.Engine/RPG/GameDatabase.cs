@@ -18,6 +18,8 @@ public class GameDatabase
     public Dictionary<string, Enemy> Enemies { get; } = new();
     public Dictionary<string, Troop> Troops { get; } = new();
     public Dictionary<int, Tileset> Tilesets { get; } = new();
+    public Dictionary<string, Weapon> Weapons { get; } = new();
+    public Dictionary<string, Armor> Armors { get; } = new();
     public Dictionary<string, Animation> Animations { get; } = new();
     public Dictionary<string, CommonEvent> CommonEvents { get; } = new();
     public SystemConfig SystemConfig { get; private set; } = new();
@@ -123,6 +125,14 @@ public class GameDatabase
 
     /// <summary>
     /// Get a tileset definition by ID.
+    /// </summary>
+    public Tileset? GetTileset(int tilesetId)
+    {
+        return Tilesets.TryGetValue(tilesetId, out var tileset) ? tileset : null;
+    }
+
+    /// <summary>
+    /// Get a weapon definition by ID.
     /// </summary>
     public Tileset? GetTileset(int tilesetId)
     {

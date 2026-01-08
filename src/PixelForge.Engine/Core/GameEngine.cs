@@ -32,6 +32,10 @@ public class GameEngine : Game, IGameContext
         _gameState = new GameState();
         _inputManager = new InputManager();
         _resourceManager = new ResourceManager(Content);
+        _database = new GameDatabase();
+        _mapManager = new MapManager(_resourceManager, _gameState, _database);
+        _partyManager = new PartyManager();
+        _inventoryManager = new InventoryManager();
         _mapManager = new MapManager(this);
         _partyManager = new PartyManager();
         _inventoryManager = new InventoryManager();

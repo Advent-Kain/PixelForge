@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using PixelForge.Shared.Models;
+using PixelForge.Shared.Models.Database;
 using PixelForge.Engine.Core;
 using PixelForge.Engine.Graphics;
 using PixelForge.Engine.Events;
@@ -29,6 +30,7 @@ public class MapManager
     public MapData? CurrentMap { get; private set; }
     public Vector2 CameraPosition { get; set; }
 
+    public MapManager(ResourceManager resourceManager, GameState gameState, GameDatabase database)
     public MapManager(IGameContext gameContext)
     {
         _gameContext = gameContext;
@@ -63,6 +65,7 @@ public class MapManager
         if (_loadedMaps.TryGetValue(mapId, out var cachedMap))
         {
             CurrentMap = cachedMap;
+            RegisterTilesets(CurrentMap);
             return;
         }
 
@@ -73,6 +76,7 @@ public class MapManager
         {
             // Create a default map if file doesn't exist
             CurrentMap = MapData.CreateDefault();
+            RegisterTilesets(CurrentMap);
             return;
         }
 
@@ -85,12 +89,14 @@ public class MapManager
             {
                 _loadedMaps[mapId] = map;
                 CurrentMap = map;
+                RegisterTilesets(CurrentMap);
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error loading map {mapId}: {ex.Message}");
             CurrentMap = MapData.CreateDefault();
+            RegisterTilesets(CurrentMap);
         }
     }
 
@@ -113,6 +119,10 @@ public class MapManager
         File.WriteAllText(mapPath, json);
 
         _loadedMaps[mapId] = map;
+        if (CurrentMap?.Id == map.Id)
+        {
+            RegisterTilesets(CurrentMap);
+        }
     }
 
     /// <summary>
@@ -180,6 +190,42 @@ public class MapManager
 
         // Draw events
         DrawEvents(spriteBatch);
+    }
+
+    private void RegisterTilesets(MapData? map)
+    {
+        _tileRenderer.ClearTilesets();
+
+        if (map == null)
+            return;
+
+        var tilesetIds = new HashSet<int>();
+        foreach (var layer in map.Layers)
+        {
+            if (layer.Type != LayerType.Tile)
+                continue;
+
+            for (int y = 0; y < layer.Height; y++)
+            {
+                for (int x = 0; x < layer.Width; x++)
+                {
+                    var tile = layer.GetTile(x, y);
+                    if (tile == null || tile.IsEmpty)
+                        continue;
+
+                    tilesetIds.Add(tile.TilesetId);
+                }
+            }
+        }
+
+        foreach (var tilesetId in tilesetIds)
+        {
+            var tileset = _database.GetTileset(tilesetId);
+            if (tileset != null)
+            {
+                _tileRenderer.RegisterTileset(tileset);
+            }
+        }
     }
 
     /// <summary>

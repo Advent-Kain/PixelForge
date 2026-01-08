@@ -169,6 +169,18 @@ public partial class DatabaseEditorViewModel : ViewModelBase
         };
         Items.Add(item);
 
+        // Add sample tileset
+        var tileset = new Tileset
+        {
+            Id = 1,
+            Name = "Default Tileset",
+            ImagePath = "Assets/Graphics/Tilesets/Default.png",
+            TileWidth = 48,
+            TileHeight = 48,
+            Columns = 8,
+            Rows = 8
+        };
+        Tilesets.Add(tileset);
         var tileset = new Tileset
         {
             Id = 1,
@@ -291,6 +303,7 @@ public partial class DatabaseEditorViewModel : ViewModelBase
     {
         var tileset = new Tileset
         {
+            Id = Tilesets.Count == 0 ? 1 : Tilesets.Max(t => t.Id) + 1,
             Id = Tilesets.Count > 0 ? Tilesets.Max(t => t.Id) + 1 : 1,
             Name = $"Tileset{Tilesets.Count + 1:D3}"
         };
@@ -394,6 +407,7 @@ public partial class DatabaseEditorViewModel : ViewModelBase
             EnemiesFileName,
             TroopsFileName,
             StatesFileName,
+            TilesetsFileName
             TilesetsFileName,
             AnimationsFileName,
             SystemConfigFileName,
