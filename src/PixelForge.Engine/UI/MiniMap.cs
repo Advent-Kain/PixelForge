@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using PixelForge.Shared.Models;
+using XnaRectangle = Microsoft.Xna.Framework.Rectangle;
 
 namespace PixelForge.Engine.UI;
 
@@ -47,7 +48,7 @@ public class MiniMap
             _margin
         );
 
-        var miniMapRect = new Rectangle(
+        var miniMapRect = new XnaRectangle(
             (int)position.X,
             (int)position.Y,
             _size,
@@ -73,7 +74,7 @@ public class MiniMap
     /// <summary>
     /// Draw simplified map overview.
     /// </summary>
-    private void DrawMapOverview(SpriteBatch spriteBatch, Texture2D pixelTexture, Rectangle miniMapRect)
+    private void DrawMapOverview(SpriteBatch spriteBatch, Texture2D pixelTexture, XnaRectangle miniMapRect)
     {
         if (_currentMap == null)
             return;
@@ -98,7 +99,7 @@ public class MiniMap
                     int pixelX = (int)(miniMapRect.X + x * scale);
                     int pixelY = (int)(miniMapRect.Y + y * scale);
 
-                    var pixelRect = new Rectangle(pixelX, pixelY, Math.Max(1, (int)scale), Math.Max(1, (int)scale));
+                    var pixelRect = new XnaRectangle(pixelX, pixelY, Math.Max(1, (int)scale), Math.Max(1, (int)scale));
 
                     // Color based on tile type (simplified)
                     Color tileColor = new Color(50, 100, 50); // Green for ground
@@ -122,7 +123,7 @@ public class MiniMap
                     int pixelX = (int)(miniMapRect.X + x * scale);
                     int pixelY = (int)(miniMapRect.Y + y * scale);
 
-                    var pixelRect = new Rectangle(pixelX, pixelY, Math.Max(1, (int)scale), Math.Max(1, (int)scale));
+                    var pixelRect = new XnaRectangle(pixelX, pixelY, Math.Max(1, (int)scale), Math.Max(1, (int)scale));
 
                     Color collisionColor = new Color(100, 100, 100); // Gray for walls
                     spriteBatch.Draw(pixelTexture, pixelRect, collisionColor);
@@ -134,7 +135,7 @@ public class MiniMap
     /// <summary>
     /// Draw player position marker.
     /// </summary>
-    private void DrawPlayerMarker(SpriteBatch spriteBatch, Texture2D pixelTexture, Rectangle miniMapRect)
+    private void DrawPlayerMarker(SpriteBatch spriteBatch, Texture2D pixelTexture, XnaRectangle miniMapRect)
     {
         if (_currentMap == null)
             return;
@@ -149,18 +150,18 @@ public class MiniMap
         int playerY = (int)(miniMapRect.Y + _playerPosition.Y * scale);
 
         // Draw player as colored square
-        var playerRect = new Rectangle(playerX - 2, playerY - 2, 5, 5);
+        var playerRect = new XnaRectangle(playerX - 2, playerY - 2, 5, 5);
         spriteBatch.Draw(pixelTexture, playerRect, Color.Yellow);
 
         // Draw direction indicator (small arrow)
-        var arrowRect = new Rectangle(playerX - 1, playerY - 4, 3, 2);
+        var arrowRect = new XnaRectangle(playerX - 1, playerY - 4, 3, 2);
         spriteBatch.Draw(pixelTexture, arrowRect, Color.Yellow);
     }
 
     /// <summary>
     /// Draw event markers as dots.
     /// </summary>
-    private void DrawEventMarkers(SpriteBatch spriteBatch, Texture2D pixelTexture, Rectangle miniMapRect)
+    private void DrawEventMarkers(SpriteBatch spriteBatch, Texture2D pixelTexture, XnaRectangle miniMapRect)
     {
         if (_currentMap == null)
             return;
@@ -176,7 +177,7 @@ public class MiniMap
             int eventX = (int)(miniMapRect.X + evt.Position.X * scale);
             int eventY = (int)(miniMapRect.Y + evt.Position.Y * scale);
 
-            var eventRect = new Rectangle(eventX - 1, eventY - 1, 3, 3);
+            var eventRect = new XnaRectangle(eventX - 1, eventY - 1, 3, 3);
             spriteBatch.Draw(pixelTexture, eventRect, Color.Cyan);
         }
     }
@@ -189,11 +190,11 @@ public class MiniMap
         _visible = !_visible;
     }
 
-    private void DrawBorder(SpriteBatch spriteBatch, Texture2D texture, Rectangle rect, Color color, int thickness)
+    private void DrawBorder(SpriteBatch spriteBatch, Texture2D texture, XnaRectangle rect, Color color, int thickness)
     {
-        spriteBatch.Draw(texture, new Rectangle(rect.X, rect.Y, rect.Width, thickness), color);
-        spriteBatch.Draw(texture, new Rectangle(rect.X, rect.Bottom - thickness, rect.Width, thickness), color);
-        spriteBatch.Draw(texture, new Rectangle(rect.X, rect.Y, thickness, rect.Height), color);
-        spriteBatch.Draw(texture, new Rectangle(rect.Right - thickness, rect.Y, thickness, rect.Height), color);
+        spriteBatch.Draw(texture, new XnaRectangle(rect.X, rect.Y, rect.Width, thickness), color);
+        spriteBatch.Draw(texture, new XnaRectangle(rect.X, rect.Bottom - thickness, rect.Width, thickness), color);
+        spriteBatch.Draw(texture, new XnaRectangle(rect.X, rect.Y, thickness, rect.Height), color);
+        spriteBatch.Draw(texture, new XnaRectangle(rect.Right - thickness, rect.Y, thickness, rect.Height), color);
     }
 }
