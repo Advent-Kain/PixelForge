@@ -1,7 +1,13 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using PixelForge.Editor.Services;
 using PixelForge.Shared.Models;
+using PixelForge.Shared.Models.Database;
+using System;
 using System.Collections.ObjectModel;
+using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
 
 namespace PixelForge.Editor.ViewModels;
 
@@ -10,6 +16,11 @@ namespace PixelForge.Editor.ViewModels;
 /// </summary>
 public partial class MapEditorViewModel : ViewModelBase
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     [ObservableProperty]
     private MapData? _currentMap;
 
@@ -18,6 +29,12 @@ public partial class MapEditorViewModel : ViewModelBase
 
     [ObservableProperty]
     private int _selectedTileId = -1;
+
+    [ObservableProperty]
+    private Tileset? _selectedTileset;
+
+    [ObservableProperty]
+    private MapPaintTool _selectedTool = MapPaintTool.Paint;
 
     [ObservableProperty]
     private double _zoomLevel = 1.0;
@@ -29,11 +46,15 @@ public partial class MapEditorViewModel : ViewModelBase
     private bool _showEvents = true;
 
     public ObservableCollection<MapLayer> Layers { get; } = new();
+    public ObservableCollection<Tileset> Tilesets { get; } = new();
+    public ObservableCollection<int> TilePalette { get; } = new();
+    public ObservableCollection<MapPaintTool> PaintTools { get; } = new(Enum.GetValues<MapPaintTool>());
 
     public MapEditorViewModel()
     {
         // Create a default map
         NewMap();
+        LoadTilesets();
     }
 
     [RelayCommand]
@@ -109,12 +130,12 @@ public partial class MapEditorViewModel : ViewModelBase
     /// </summary>
     public void PaintTile(int x, int y)
     {
-        if (SelectedLayer == null || SelectedTileId < 0)
+        if (SelectedLayer == null || SelectedTileId < 0 || SelectedTileset == null)
             return;
 
         var tile = new TileData
         {
-            TilesetId = 0,
+            TilesetId = SelectedTileset.Id,
             TileId = SelectedTileId
         };
 
@@ -144,4 +165,70 @@ public partial class MapEditorViewModel : ViewModelBase
 
         SelectedLayer = Layers.FirstOrDefault();
     }
+
+    partial void OnSelectedTilesetChanged(Tileset? value)
+    {
+        BuildTilePalette(value);
+    }
+
+    private void BuildTilePalette(Tileset? tileset)
+    {
+        TilePalette.Clear();
+
+        if (tileset == null)
+        {
+            SelectedTileId = -1;
+            return;
+        }
+
+        int count = Math.Max(0, tileset.Columns * tileset.Rows);
+        for (int i = 0; i < count; i++)
+        {
+            TilePalette.Add(i);
+        }
+
+        SelectedTileId = TilePalette.Count > 0 ? TilePalette[0] : -1;
+    }
+
+    private void LoadTilesets()
+    {
+        Tilesets.Clear();
+        var databaseDirectory = ProjectManager.GetDatabaseDirectory();
+        if (databaseDirectory != null)
+        {
+            var filePath = Path.Combine(databaseDirectory, "tilesets.json");
+            if (File.Exists(filePath))
+            {
+                var json = File.ReadAllText(filePath);
+                var tilesets = JsonSerializer.Deserialize<List<Tileset>>(json, JsonOptions) ?? new List<Tileset>();
+                foreach (var tileset in tilesets)
+                {
+                    Tilesets.Add(tileset);
+                }
+            }
+        }
+
+        if (Tilesets.Count == 0)
+        {
+            Tilesets.Add(new Tileset
+            {
+                Id = 1,
+                Name = "Default Tileset",
+                ImagePath = "Assets/Graphics/Tilesets/Default.png",
+                TileWidth = 48,
+                TileHeight = 48,
+                Columns = 8,
+                Rows = 8
+            });
+        }
+
+        SelectedTileset = Tilesets.FirstOrDefault();
+    }
+}
+
+public enum MapPaintTool
+{
+    Paint,
+    Erase,
+    Fill
 }

@@ -21,6 +21,42 @@
             <ToggleButton Content="Events" IsChecked="{Binding ShowEvents}" />
         </StackPanel>
 
+        <!-- Tileset Panel -->
+        <Border DockPanel.Dock="Left" Background="#2D2D2D" Padding="10" Width="260">
+            <StackPanel Spacing="10">
+                <TextBlock Text="Tilesets" FontWeight="Bold" />
+                <ComboBox ItemsSource="{Binding Tilesets}"
+                          SelectedItem="{Binding SelectedTileset}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Name}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <TextBlock Text="Paint Tool" FontWeight="Bold" Margin="0,5,0,0" />
+                <ComboBox ItemsSource="{Binding PaintTools}"
+                          SelectedItem="{Binding SelectedTool}" />
+
+                <TextBlock Text="Tile Palette" FontWeight="Bold" Margin="0,5,0,0" />
+                <ListBox ItemsSource="{Binding TilePalette}"
+                         SelectedItem="{Binding SelectedTileId}">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border Width="48" Height="48" Margin="2" Background="#1E1E1E" BorderBrush="#3A3A3A" BorderThickness="1">
+                                <TextBlock Text="{Binding}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" Foreground="White" />
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </StackPanel>
+        </Border>
+
         <!-- Layer Panel -->
         <Border DockPanel.Dock="Bottom" Background="#2D2D2D" Padding="5" Height="150">
             <DockPanel>

@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using PixelForge.Shared.Models;
+using PixelForge.Shared.Models.Database;
 using PixelForge.Engine.Core;
 
 namespace PixelForge.Engine.Graphics;
@@ -24,6 +25,25 @@ public class TileRenderer
     public void RegisterTileset(Tileset tileset)
     {
         _tilesets[tileset.Id] = tileset;
+    }
+
+    /// <summary>
+    /// Register multiple tilesets at once.
+    /// </summary>
+    public void RegisterTilesets(IEnumerable<Tileset> tilesets)
+    {
+        foreach (var tileset in tilesets)
+        {
+            _tilesets[tileset.Id] = tileset;
+        }
+    }
+
+    /// <summary>
+    /// Clear all registered tilesets.
+    /// </summary>
+    public void ClearTilesets()
+    {
+        _tilesets.Clear();
     }
 
     /// <summary>
@@ -52,9 +72,14 @@ public class TileRenderer
             return;
 
         // Calculate source rectangle from tile ID
-        int tilesPerRow = texture.Width / tileset.TileWidth;
-        int sourceX = (tile.TileId % tilesPerRow) * tileset.TileWidth;
-        int sourceY = (tile.TileId / tilesPerRow) * tileset.TileHeight;
+        int tilesPerRow = (texture.Width - (tileset.Margin * 2) + tileset.Spacing)
+            / Math.Max(1, tileset.TileWidth + tileset.Spacing);
+        if (tilesPerRow <= 0)
+            return;
+
+        int tilesPerRow = Math.Max(1, (texture.Width - tileset.Margin * 2 + tileset.Spacing) / (tileset.TileWidth + tileset.Spacing));
+        int sourceX = tileset.Margin + (tile.TileId % tilesPerRow) * (tileset.TileWidth + tileset.Spacing);
+        int sourceY = tileset.Margin + (tile.TileId / tilesPerRow) * (tileset.TileHeight + tileset.Spacing);
 
         var sourceRect = new Microsoft.Xna.Framework.Rectangle(
             sourceX,
@@ -125,18 +150,12 @@ public class TileRenderer
             }
         }
     }
-}
 
-/// <summary>
-/// Represents a tileset with its texture and properties.
-/// </summary>
-public class Tileset
-{
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string ImagePath { get; set; } = string.Empty;
-    public int TileWidth { get; set; } = 48;
-    public int TileHeight { get; set; } = 48;
-    public int Spacing { get; set; }
-    public int Margin { get; set; }
+    /// <summary>
+    /// Clear all registered tilesets.
+    /// </summary>
+    public void ClearTilesets()
+    {
+        _tilesets.Clear();
+    }
 }
