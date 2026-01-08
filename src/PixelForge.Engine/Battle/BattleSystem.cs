@@ -27,30 +27,50 @@ public class BattleSystem
     {
         _mode = mode;
         _state = new BattleState();
+        var gameState = _game.GetGameState();
+        var partyManager = _game.GetPartyManager();
+        var database = _game.GetDatabase();
 
         // Initialize party
-        foreach (var memberId in _game.GetGameState().PartyMembers)
+        foreach (var memberId in gameState.PartyMembers)
         {
+            var partyActor = partyManager.GetActor(memberId);
+            var actorData = partyActor?.ActorData ?? database.GetActor(memberId);
+            var actorStats = partyActor?.GetCurrentStats() ?? actorData?.BaseStats ?? new ActorStats();
+            int maxHp = actorStats.MaxHp;
+            int maxMp = actorStats.MaxMp;
+
             var battler = new Battler
             {
                 ActorId = memberId,
                 IsActor = true,
-                CurrentHp = 100, // TODO: Load from actor data
-                CurrentMp = 50,
-                CurrentTp = 0
+                CurrentHp = partyActor != null ? Math.Clamp(partyActor.CurrentHp, 0, maxHp) : maxHp,
+                CurrentMp = partyActor != null ? Math.Clamp(partyActor.CurrentMp, 0, maxMp) : maxMp,
+                CurrentTp = partyActor?.CurrentTp ?? 0
             };
             _state.Party.Add(battler);
         }
 
         // Initialize enemies
-        // TODO: Load from troop data
-        _state.Enemies.Add(new Battler
+        for (int i = 0; i < troop.Members.Count; i++)
         {
-            EnemyId = "enemy1",
-            IsActor = false,
-            CurrentHp = 150,
-            CurrentMp = 30
-        });
+            var member = troop.Members[i];
+            var enemyData = database.GetEnemy(member.EnemyId);
+            var enemyStats = enemyData?.Stats ?? new ActorStats();
+
+            _state.Enemies.Add(new Battler
+            {
+                EnemyId = member.EnemyId,
+                IsActor = false,
+                CurrentHp = enemyStats.MaxHp,
+                CurrentMp = enemyStats.MaxMp,
+                CurrentTp = 0,
+                TroopMemberIndex = i,
+                TroopX = member.X,
+                TroopY = member.Y,
+                IsHidden = member.Hidden
+            });
+        }
 
         // Create appropriate controller
         _controller = mode switch
@@ -121,6 +141,10 @@ public class Battler
     public string? ActorId { get; set; }
     public string? EnemyId { get; set; }
     public bool IsActor { get; set; }
+    public int? TroopMemberIndex { get; set; }
+    public int TroopX { get; set; }
+    public int TroopY { get; set; }
+    public bool IsHidden { get; set; }
 
     public int CurrentHp { get; set; }
     public int CurrentMp { get; set; }
