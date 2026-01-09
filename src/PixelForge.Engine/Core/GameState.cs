@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using PixelForge.Shared.Models;
 
 namespace PixelForge.Engine.Core;
 
@@ -20,6 +21,8 @@ public class GameState
     public Dictionary<string, int> Inventory { get; } = new();
     public Dictionary<string, int> Weapons { get; } = new();
     public Dictionary<string, int> Armors { get; } = new();
+    public Dictionary<int, PictureState> Pictures { get; } = new();
+    public Dictionary<string, MoveRoute> MovementRoutes { get; } = new();
 
     /// <summary>
     /// Update the game state.
@@ -183,6 +186,8 @@ public class GameState
         Inventory.Clear();
         Weapons.Clear();
         Armors.Clear();
+        Pictures.Clear();
+        MovementRoutes.Clear();
         PartyGold = 0;
         PlayTime = TimeSpan.Zero;
         CurrentMapId = null;

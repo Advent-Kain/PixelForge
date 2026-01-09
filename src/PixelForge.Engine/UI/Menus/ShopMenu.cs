@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using PixelForge.Engine.Core;
 using PixelForge.Engine.RPG;
+using PixelForge.Shared.Models.Database;
 
 namespace PixelForge.Engine.UI;
 
@@ -216,27 +217,22 @@ public class ShopMenu : IMenu
 
         if (_mode == ShopMode.Buy)
         {
-            return _currentShop.Items.Select(si => new ShopItemInfo
-            {
-                Id = si.ItemId,
-                Name = si.ItemId, // TODO: Load from database
-                Description = "An item for sale.",
-                Price = si.Price,
-                Count = si.Unlimited ? 999 : si.Stock
-            }).ToList();
+            var items = new List<ShopItemInfo>();
+            AddShopItems(items, _currentShop.Items);
+            AddShopItems(items, _currentShop.Weapons);
+            AddShopItems(items, _currentShop.Armors);
+            return items;
         }
         else
         {
-            // Get items from inventory
-            var inventory = _game.GetGameState().Inventory;
-            return inventory.Select(kvp => new ShopItemInfo
-            {
-                Id = kvp.Key,
-                Name = kvp.Key, // TODO: Load from database
-                Description = "An item you own.",
-                Price = _shopManager.GetSellPrice(50, _currentShop.SellPriceRate), // TODO: Get base price
-                Count = kvp.Value
-            }).ToList();
+            var items = new List<ShopItemInfo>();
+            var inventory = _game.GetInventoryManager();
+
+            AddSellItems(items, RPG.ItemType.Item, inventory.GetAllItems());
+            AddSellItems(items, RPG.ItemType.Weapon, inventory.GetAllWeapons());
+            AddSellItems(items, RPG.ItemType.Armor, inventory.GetAllArmors());
+
+            return items;
         }
     }
 
@@ -250,11 +246,11 @@ public class ShopMenu : IMenu
             return;
 
         var item = items[_selectedIndex];
-        var shopItem = _currentShop.Items.FirstOrDefault(si => si.ItemId == item.Id);
+        var shopItem = FindShopItem(item);
 
         if (shopItem != null)
         {
-            if (_shopManager.BuyItem(shopItem, item.Id, _quantity))
+            if (_shopManager.BuyItem(shopItem, item.Id, _quantity, item.BasePrice))
             {
                 // TODO: Show success message
                 _quantity = 1;
@@ -277,7 +273,7 @@ public class ShopMenu : IMenu
 
         var item = items[_selectedIndex];
 
-        if (_shopManager.SellItem(RPG.ItemType.Item, item.Id, _quantity, 50, _currentShop.SellPriceRate))
+        if (_shopManager.SellItem(item.ItemType, item.Id, _quantity, item.BasePrice, _currentShop.SellPriceRate))
         {
             // TODO: Show success message
             _quantity = 1;
@@ -296,12 +292,81 @@ public class ShopMenu : IMenu
         spriteBatch.Draw(texture, new Rectangle(rect.Right - thickness, rect.Y, thickness, rect.Height), color);
     }
 
+    private void AddShopItems(List<ShopItemInfo> items, IEnumerable<ShopItem> shopItems)
+    {
+        foreach (var shopItem in shopItems)
+        {
+            var itemData = GetItemData(shopItem.ItemType, shopItem.ItemId);
+            int basePrice = shopItem.Price > 0 ? shopItem.Price : itemData?.Price ?? 0;
+
+            items.Add(new ShopItemInfo
+            {
+                Id = shopItem.ItemId,
+                ItemType = shopItem.ItemType,
+                Name = itemData?.Name ?? shopItem.ItemId,
+                Description = itemData?.Description,
+                Price = basePrice,
+                BasePrice = basePrice,
+                Count = shopItem.Unlimited ? 999 : shopItem.Stock
+            });
+        }
+    }
+
+    private void AddSellItems(List<ShopItemInfo> items, RPG.ItemType itemType, Dictionary<string, int> inventoryItems)
+    {
+        foreach (var item in inventoryItems)
+        {
+            var itemData = GetItemData(itemType, item.Key);
+            int basePrice = itemData?.Price ?? 0;
+            int sellPrice = _shopManager.GetSellPrice(basePrice, _currentShop?.SellPriceRate ?? 0f);
+
+            items.Add(new ShopItemInfo
+            {
+                Id = item.Key,
+                ItemType = itemType,
+                Name = itemData?.Name ?? item.Key,
+                Description = itemData?.Description,
+                Price = sellPrice,
+                BasePrice = basePrice,
+                Count = item.Value
+            });
+        }
+    }
+
+    private ItemBase? GetItemData(RPG.ItemType itemType, string itemId)
+    {
+        var database = _game.GetDatabase();
+        return itemType switch
+        {
+            RPG.ItemType.Item => database.GetItem(itemId),
+            RPG.ItemType.Weapon => database.GetWeapon(itemId),
+            RPG.ItemType.Armor => database.GetArmor(itemId),
+            _ => null
+        };
+    }
+
+    private ShopItem? FindShopItem(ShopItemInfo item)
+    {
+        if (_currentShop == null)
+            return null;
+
+        return item.ItemType switch
+        {
+            RPG.ItemType.Item => _currentShop.Items.FirstOrDefault(si => si.ItemId == item.Id),
+            RPG.ItemType.Weapon => _currentShop.Weapons.FirstOrDefault(si => si.ItemId == item.Id),
+            RPG.ItemType.Armor => _currentShop.Armors.FirstOrDefault(si => si.ItemId == item.Id),
+            _ => null
+        };
+    }
+
     private class ShopItemInfo
     {
         public string Id { get; set; } = string.Empty;
+        public RPG.ItemType ItemType { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public int Price { get; set; }
+        public int BasePrice { get; set; }
         public int Count { get; set; }
     }
 }

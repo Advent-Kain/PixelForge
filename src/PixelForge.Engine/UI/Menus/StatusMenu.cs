@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using PixelForge.Engine.Core;
+using PixelForge.Engine.RPG;
 
 namespace PixelForge.Engine.UI;
 
@@ -32,15 +33,16 @@ public class StatusMenu : IMenu
     public void Update(GameTime gameTime)
     {
         var keyboard = Keyboard.GetState();
+        var party = _game.GetPartyManager().Party;
 
         // Navigate actors (Left/Right)
-        if (keyboard.IsKeyDown(Keys.Right) && _previousKeyboard.IsKeyUp(Keys.Right))
+        if (party.Count > 0 && keyboard.IsKeyDown(Keys.Right) && _previousKeyboard.IsKeyUp(Keys.Right))
         {
-            _selectedActorIndex = (_selectedActorIndex + 1) % 4; // Max 4 party members
+            _selectedActorIndex = (_selectedActorIndex + 1) % party.Count;
         }
-        else if (keyboard.IsKeyDown(Keys.Left) && _previousKeyboard.IsKeyUp(Keys.Left))
+        else if (party.Count > 0 && keyboard.IsKeyDown(Keys.Left) && _previousKeyboard.IsKeyUp(Keys.Left))
         {
-            _selectedActorIndex = (_selectedActorIndex - 1 + 4) % 4;
+            _selectedActorIndex = (_selectedActorIndex - 1 + party.Count) % party.Count;
         }
 
         _previousKeyboard = keyboard;
@@ -64,28 +66,37 @@ public class StatusMenu : IMenu
         Vector2 titlePos = new Vector2(windowRect.X + 20, windowRect.Y + 10);
         spriteBatch.DrawString(font, "Status", titlePos, Color.White);
 
+        var actor = GetSelectedActor();
+        if (actor == null)
+        {
+            Vector2 emptyPos = new Vector2(windowRect.X + 20, windowRect.Y + 50);
+            spriteBatch.DrawString(font, "No party members.", emptyPos, Color.Gray);
+            return;
+        }
+
+        var actorStats = actor.GetCurrentStats();
+        int maxHp = Math.Max(1, actorStats.MaxHp);
+        int maxMp = Math.Max(1, actorStats.MaxMp);
+        int currentHp = Math.Clamp(actor.CurrentHp, 0, maxHp);
+        int currentMp = Math.Clamp(actor.CurrentMp, 0, maxMp);
+
         // Draw actor name and class
-        string actorName = $"Hero"; // TODO: Get from party
-        string className = $"Warrior";
+        string actorName = actor.ActorData?.Name ?? actor.ActorId;
+        string className = actor.ClassData?.Name ?? "Unknown Class";
         Vector2 namePos = new Vector2(windowRect.X + 20, windowRect.Y + 50);
         spriteBatch.DrawString(font, actorName, namePos, Color.Cyan);
         spriteBatch.DrawString(font, className, namePos + new Vector2(0, 30), Color.White);
 
         // Draw level and experience
-        int level = 5; // TODO: Get from actor
-        int currentExp = 450;
-        int nextLevelExp = 600;
+        int level = actor.Level;
+        int currentExp = actor.Experience;
+        int nextLevelExp = actor.GetExpForNextLevel();
 
         Vector2 levelPos = new Vector2(windowRect.X + 250, windowRect.Y + 50);
         spriteBatch.DrawString(font, $"Level: {level}", levelPos, Color.White);
         spriteBatch.DrawString(font, $"EXP: {currentExp}/{nextLevelExp}", levelPos + new Vector2(0, 30), Color.White);
 
         // Draw HP and MP
-        int currentHp = 280;
-        int maxHp = 350;
-        int currentMp = 80;
-        int maxMp = 120;
-
         Vector2 hpPos = new Vector2(windowRect.X + 20, windowRect.Y + 120);
         spriteBatch.DrawString(font, $"HP: {currentHp}/{maxHp}", hpPos, Color.Green);
         spriteBatch.DrawString(font, $"MP: {currentMp}/{maxMp}", hpPos + new Vector2(0, 30), Color.Cyan);
@@ -108,12 +119,12 @@ public class StatusMenu : IMenu
 
         string[] stats = new[]
         {
-            "Attack:        45",
-            "Defense:       32",
-            "M. Attack:     38",
-            "M. Defense:    28",
-            "Agility:       41",
-            "Luck:          25"
+            $"Attack:        {actorStats.Attack}",
+            $"Defense:       {actorStats.Defense}",
+            $"M. Attack:     {actorStats.MagicAttack}",
+            $"M. Defense:    {actorStats.MagicDefense}",
+            $"Agility:       {actorStats.Agility}",
+            $"Luck:          {actorStats.Luck}"
         };
 
         for (int i = 0; i < stats.Length; i++)
@@ -125,15 +136,7 @@ public class StatusMenu : IMenu
         Vector2 equipPos = new Vector2(windowRect.X + 350, windowRect.Y + 200);
         spriteBatch.DrawString(font, "--- Equipment ---", equipPos, Color.Yellow);
 
-        string[] equipment = new[]
-        {
-            "Weapon:   Iron Sword",
-            "Shield:   Wooden Shield",
-            "Head:     Leather Cap",
-            "Body:     Chain Mail",
-            "Acc 1:    Power Ring",
-            "Acc 2:    None"
-        };
+        var equipment = GetEquipmentSummary(actor);
 
         for (int i = 0; i < equipment.Length; i++)
         {
@@ -156,5 +159,39 @@ public class StatusMenu : IMenu
         spriteBatch.Draw(texture, new Rectangle(rect.X, rect.Bottom - thickness, rect.Width, thickness), color);
         spriteBatch.Draw(texture, new Rectangle(rect.X, rect.Y, thickness, rect.Height), color);
         spriteBatch.Draw(texture, new Rectangle(rect.Right - thickness, rect.Y, thickness, rect.Height), color);
+    }
+
+    private GameActor? GetSelectedActor()
+    {
+        var party = _game.GetPartyManager().Party;
+        if (party.Count == 0)
+            return null;
+
+        _selectedActorIndex = Math.Clamp(_selectedActorIndex, 0, party.Count - 1);
+        return party[_selectedActorIndex];
+    }
+
+    private string[] GetEquipmentSummary(GameActor actor)
+    {
+        var database = _game.GetDatabase();
+
+        string ResolveName(string slotKey)
+        {
+            if (!actor.EquippedItems.TryGetValue(slotKey, out var itemId) || string.IsNullOrEmpty(itemId))
+                return "None";
+
+            var equipment = database.GetEquipment(itemId);
+            return equipment?.Name ?? "Unknown";
+        }
+
+        return new[]
+        {
+            $"Weapon:   {ResolveName("weapon")}",
+            $"Shield:   {ResolveName("shield")}",
+            $"Head:     {ResolveName("head")}",
+            $"Body:     {ResolveName("body")}",
+            $"Acc 1:    {ResolveName("accessory1")}",
+            $"Acc 2:    {ResolveName("accessory2")}"
+        };
     }
 }

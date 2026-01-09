@@ -1,4 +1,7 @@
+using System.Collections.ObjectModel;
 using System.Text.Json.Serialization;
+using PixelForge.Engine.Core;
+using PixelForge.Engine.RPG;
 
 namespace PixelForge.Engine.Quest;
 
@@ -17,7 +20,7 @@ public class Quest
     public string Description { get; set; } = string.Empty;
 
     [JsonPropertyName("objectives")]
-    public List<QuestObjective> Objectives { get; set; } = new();
+    public ObservableCollection<QuestObjective> Objectives { get; set; } = new();
 
     [JsonPropertyName("rewards")]
     public QuestRewards Rewards { get; set; } = new();
@@ -79,7 +82,22 @@ public class QuestRequirements
     public int? MinLevel { get; set; }
 
     [JsonPropertyName("previousQuests")]
-    public List<string> PreviousQuests { get; set; } = new();
+    public ObservableCollection<string> PreviousQuests { get; set; } = new();
+
+    [JsonPropertyName("flags")]
+    public ObservableCollection<QuestFlagRequirement> Flags { get; set; } = new();
+}
+
+/// <summary>
+/// Quest flag requirement.
+/// </summary>
+public class QuestFlagRequirement
+{
+    [JsonPropertyName("switchId")]
+    public int SwitchId { get; set; }
+
+    [JsonPropertyName("value")]
+    public bool Value { get; set; } = true;
 }
 
 /// <summary>
@@ -119,6 +137,14 @@ public class QuestManager
     private readonly Dictionary<string, Quest> _availableQuests = new();
     private readonly Dictionary<string, ActiveQuest> _activeQuests = new();
     private readonly HashSet<string> _completedQuests = new();
+    private readonly GameState? _gameState;
+    private readonly PartyManager? _partyManager;
+
+    public QuestManager(GameState? gameState = null, PartyManager? partyManager = null)
+    {
+        _gameState = gameState;
+        _partyManager = partyManager;
+    }
 
     /// <summary>
     /// Register a quest as available.
@@ -143,14 +169,8 @@ public class QuestManager
             return false;
 
         // Check requirements
-        if (quest.Requirements != null)
-        {
-            // Check previous quests
-            if (quest.Requirements.PreviousQuests.Any(pq => !_completedQuests.Contains(pq)))
-                return false;
-
-            // TODO: Check level requirement
-        }
+        if (!MeetsRequirements(quest))
+            return false;
 
         // Create active quest
         var activeQuest = new ActiveQuest
@@ -202,6 +222,8 @@ public class QuestManager
         _activeQuests.Remove(questId);
         _completedQuests.Add(questId);
 
+        ApplyRewards(activeQuest.QuestData);
+
         return true;
     }
 
@@ -239,5 +261,61 @@ public class QuestManager
     public ActiveQuest? GetActiveQuest(string questId)
     {
         return _activeQuests.TryGetValue(questId, out var quest) ? quest : null;
+    }
+
+    private bool MeetsRequirements(Quest quest)
+    {
+        if (quest.Requirements == null)
+            return true;
+
+        if (quest.Requirements.PreviousQuests.Any(pq => !_completedQuests.Contains(pq)))
+            return false;
+
+        if (quest.Requirements.MinLevel != null)
+        {
+            if (_partyManager == null)
+                return false;
+
+            var highestLevel = _partyManager.Party.Count > 0
+                ? _partyManager.Party.Max(actor => actor.Level)
+                : 0;
+
+            if (highestLevel < quest.Requirements.MinLevel.Value)
+                return false;
+        }
+
+        if (quest.Requirements.Flags.Any())
+        {
+            if (_gameState == null)
+                return false;
+
+            foreach (var flag in quest.Requirements.Flags)
+            {
+                if (_gameState.GetSwitch(flag.SwitchId) != flag.Value)
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    private void ApplyRewards(Quest quest)
+    {
+        if (_gameState != null)
+        {
+            if (quest.Rewards.Gold != 0)
+                _gameState.PartyGold += quest.Rewards.Gold;
+
+            foreach (var rewardItem in quest.Rewards.Items)
+            {
+                if (rewardItem.Value > 0)
+                    _gameState.AddItem(rewardItem.Key, rewardItem.Value);
+            }
+        }
+
+        if (_partyManager != null && quest.Rewards.Experience > 0)
+        {
+            _partyManager.GainExperience(quest.Rewards.Experience);
+        }
     }
 }

@@ -173,6 +173,24 @@ public class MoveCommand
 }
 
 /// <summary>
+/// A movement route definition.
+/// </summary>
+public class MoveRoute
+{
+    [JsonPropertyName("repeat")]
+    public bool Repeat { get; set; }
+
+    [JsonPropertyName("skippable")]
+    public bool Skippable { get; set; }
+
+    [JsonPropertyName("wait")]
+    public bool Wait { get; set; }
+
+    [JsonPropertyName("list")]
+    public List<MoveCommand> Commands { get; set; } = new();
+}
+
+/// <summary>
 /// Event trigger types.
 /// </summary>
 public enum EventTrigger

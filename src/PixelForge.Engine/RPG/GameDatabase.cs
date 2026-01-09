@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.IO;
 using PixelForge.Shared.Models.Database;
 
 namespace PixelForge.Engine.RPG;
@@ -7,7 +9,12 @@ namespace PixelForge.Engine.RPG;
 /// </summary>
 public class GameDatabase
 {
+    public Dictionary<string, Skill> Skills { get; } = new();
+    public Dictionary<string, Item> Items { get; } = new();
+    public Dictionary<string, Weapon> Weapons { get; } = new();
+    public Dictionary<string, Armor> Armors { get; } = new();
     public Dictionary<string, Actor> Actors { get; } = new();
+    public Dictionary<string, CharacterClass> Classes { get; } = new();
     public Dictionary<string, Enemy> Enemies { get; } = new();
     public Dictionary<string, Troop> Troops { get; } = new();
     public Dictionary<string, Skill> Skills { get; } = new();
@@ -22,6 +29,14 @@ public class GameDatabase
     public Actor? GetActor(string actorId)
     {
         return Actors.TryGetValue(actorId, out var actor) ? actor : null;
+    }
+
+    /// <summary>
+    /// Get a class definition by ID.
+    /// </summary>
+    public CharacterClass? GetClass(string classId)
+    {
+        return Classes.TryGetValue(classId, out var classData) ? classData : null;
     }
 
     /// <summary>

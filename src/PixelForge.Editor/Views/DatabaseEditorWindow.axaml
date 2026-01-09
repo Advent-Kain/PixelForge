@@ -224,6 +224,77 @@
                 </Grid>
             </TabItem>
 
+            <!-- Tilesets Tab -->
+            <TabItem Header="Tilesets">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="250" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <DockPanel Grid.Column="0">
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="5">
+                            <Button Content="New" Command="{Binding NewTilesetCommand}" />
+                            <Button Content="Delete" Command="{Binding DeleteTilesetCommand}" Margin="5,0,0,0" />
+                        </StackPanel>
+
+                        <ListBox ItemsSource="{Binding Tilesets}"
+                                 SelectedItem="{Binding SelectedTileset}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+
+                    <ScrollViewer Grid.Column="1" Padding="10">
+                        <StackPanel Spacing="10" DataContext="{Binding SelectedTileset}">
+                            <TextBlock Text="Tileset Properties" FontWeight="Bold" FontSize="16" />
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="ID:" />
+                                <NumericUpDown Value="{Binding Id}" Minimum="0" Maximum="9999" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Name:" />
+                                <TextBox Text="{Binding Name}" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Image Path:" />
+                                <TextBox Text="{Binding ImagePath}" />
+                            </StackPanel>
+
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" RowDefinitions="Auto,Auto" RowSpacing="5">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Tile Width:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding TileWidth}" Minimum="1" Maximum="512" />
+
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Tile Height:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding TileHeight}" Minimum="1" Maximum="512" />
+                            </Grid>
+
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" RowDefinitions="Auto,Auto" RowSpacing="5">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Spacing:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding Spacing}" Minimum="0" Maximum="32" />
+
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Margin:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding Margin}" Minimum="0" Maximum="32" />
+                            </Grid>
+
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" RowDefinitions="Auto,Auto" RowSpacing="5">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Columns:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding Columns}" Minimum="0" Maximum="999" />
+
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Rows:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding Rows}" Minimum="0" Maximum="999" />
+                            </Grid>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+
             <!-- Enemies Tab -->
             <TabItem Header="Enemies">
                 <Grid>
@@ -278,6 +349,125 @@
 
                                 <TextBlock Grid.Row="3" Grid.Column="0" Text="Agility:" />
                                 <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding Agility}" Minimum="0" Maximum="9999" />
+                            </Grid>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+
+            <!-- Quests Tab -->
+            <TabItem Header="Quests">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="250" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <DockPanel Grid.Column="0">
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="5">
+                            <Button Content="New" Command="{Binding NewQuestCommand}" />
+                            <Button Content="Delete" Command="{Binding DeleteQuestCommand}" Margin="5,0,0,0" />
+                        </StackPanel>
+
+                        <ListBox ItemsSource="{Binding Quests}"
+                                 SelectedItem="{Binding SelectedQuest}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Title}" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+
+                    <ScrollViewer Grid.Column="1" Padding="10">
+                        <StackPanel Spacing="10" DataContext="{Binding SelectedQuest}">
+                            <TextBlock Text="Quest Properties" FontWeight="Bold" FontSize="16" />
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Id:" />
+                                <TextBox Text="{Binding Id}" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Title:" />
+                                <TextBox Text="{Binding Title}" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Description:" />
+                                <TextBox Text="{Binding Description}" TextWrapping="Wrap" Height="60" />
+                            </StackPanel>
+
+                            <TextBlock Text="Requirements" FontWeight="Bold" Margin="0,10,0,0" />
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Minimum Level:" />
+                                <NumericUpDown Value="{Binding Requirements.MinLevel}" Minimum="1" Maximum="99" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Prerequisite Quests:" />
+                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <TextBox Width="200"
+                                             Text="{Binding DataContext.NewPrerequisiteId, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <Button Content="Add"
+                                            Command="{Binding DataContext.AddQuestPrerequisiteCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <Button Content="Remove"
+                                            Command="{Binding DataContext.RemoveQuestPrerequisiteCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                </StackPanel>
+                                <ListBox Height="90"
+                                         ItemsSource="{Binding Requirements.PreviousQuests}"
+                                         SelectedItem="{Binding DataContext.SelectedPrerequisite, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            </StackPanel>
+
+                            <TextBlock Text="Flags" FontWeight="Bold" Margin="0,10,0,0" />
+                            <StackPanel Spacing="5">
+                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <Button Content="New Flag"
+                                            Command="{Binding DataContext.NewQuestFlagCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <Button Content="Delete Flag"
+                                            Command="{Binding DataContext.DeleteQuestFlagCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                </StackPanel>
+                                <DataGrid ItemsSource="{Binding Requirements.Flags}"
+                                          SelectedItem="{Binding DataContext.SelectedQuestFlag, RelativeSource={RelativeSource AncestorType=Window}}"
+                                          AutoGenerateColumns="False"
+                                          Height="120">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Switch Id" Binding="{Binding SwitchId}" Width="*" />
+                                        <DataGridCheckBoxColumn Header="Value" Binding="{Binding Value}" Width="Auto" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+
+                            <TextBlock Text="Objectives" FontWeight="Bold" Margin="0,10,0,0" />
+                            <StackPanel Spacing="5">
+                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <Button Content="New Objective"
+                                            Command="{Binding DataContext.NewQuestObjectiveCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <Button Content="Delete Objective"
+                                            Command="{Binding DataContext.DeleteQuestObjectiveCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                </StackPanel>
+                                <DataGrid ItemsSource="{Binding Objectives}"
+                                          SelectedItem="{Binding DataContext.SelectedQuestObjective, RelativeSource={RelativeSource AncestorType=Window}}"
+                                          AutoGenerateColumns="False"
+                                          Height="200">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Id" Binding="{Binding Id}" Width="2*" />
+                                        <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="3*" />
+                                        <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="*" />
+                                        <DataGridTextColumn Header="Target Id" Binding="{Binding TargetId}" Width="*" />
+                                        <DataGridTextColumn Header="Target Count" Binding="{Binding TargetCount}" Width="*" />
+                                        <DataGridCheckBoxColumn Header="Optional" Binding="{Binding Optional}" Width="Auto" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+
+                            <TextBlock Text="Rewards" FontWeight="Bold" Margin="0,10,0,0" />
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" RowDefinitions="Auto,Auto" RowSpacing="5">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Experience:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding Rewards.Experience}" Minimum="0" Maximum="999999" />
+
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Gold:" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding Rewards.Gold}" Minimum="0" Maximum="999999" />
                             </Grid>
                         </StackPanel>
                     </ScrollViewer>

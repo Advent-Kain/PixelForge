@@ -13,7 +13,7 @@ namespace PixelForge.Engine.Core;
 /// <summary>
 /// Main game engine class that manages the game loop and core systems.
 /// </summary>
-public class GameEngine : Game
+public class GameEngine : Game, IGameContext
 {
     private readonly GraphicsDeviceManager _graphics;
     private SpriteBatch? _spriteBatch;
@@ -64,6 +64,9 @@ public class GameEngine : Game
         IsFixedTimeStep = true;
 
         _inputManager.Initialize();
+
+        LoadDatabase();
+        ApplySystemConfig();
     }
 
     /// <summary>
@@ -129,6 +132,8 @@ public class GameEngine : Game
             // Check for menu open (not during battle)
             _menuManager.Update(gameTime);
         }
+
+        TryRunCommonEvents();
 
         base.Update(gameTime);
     }
@@ -207,6 +212,11 @@ public class GameEngine : Game
     /// Get the party manager.
     /// </summary>
     public PartyManager GetPartyManager() => _partyManager;
+
+    /// <summary>
+    /// Get the database.
+    /// </summary>
+    public GameDatabase GetDatabase() => _database;
 
     /// <summary>
     /// Get the inventory manager.

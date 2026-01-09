@@ -12,17 +12,18 @@ namespace PixelForge.Editor.Services;
 /// </summary>
 public class ExportService
 {
-    private readonly string _projectPath;
-    private readonly string _gamePath;
+    private const string SolutionFileName = "PixelForge.sln";
+    private readonly string _projectRoot;
+    private readonly string _runtimeProjectPath;
     private readonly string _outputBasePath;
 
     public event EventHandler<string>? ProgressUpdate;
 
     public ExportService(string projectPath)
     {
-        _projectPath = projectPath;
-        _gamePath = Path.Combine(projectPath, "src", "PixelForge.Game");
-        _outputBasePath = Path.Combine(projectPath, "Exports");
+        _projectRoot = ResolveProjectRoot(projectPath);
+        _runtimeProjectPath = ResolveRuntimeProjectPath(projectPath);
+        _outputBasePath = Path.Combine(_projectRoot, "Exports");
     }
 
     /// <summary>
@@ -52,9 +53,13 @@ public class ExportService
                 return false;
             }
 
-            // Copy content files
-            ReportProgress("Copying content files...");
-            CopyContentFiles(outputPath);
+            // Copy project content/configuration
+            ReportProgress("Copying project files...");
+            if (!CopyProjectFiles(outputPath))
+            {
+                ReportProgress("Export failed: required project content missing.");
+                return false;
+            }
 
             // Create archive if requested
             if (options.CreateArchive)
@@ -83,7 +88,7 @@ public class ExportService
             var runtimeId = GetRuntimeIdentifier(options.Platform);
             var configuration = options.Configuration;
 
-            var arguments = $"publish \"{_gamePath}\" " +
+            var arguments = $"publish \"{_runtimeProjectPath}\" " +
                           $"--configuration {configuration} " +
                           $"--runtime {runtimeId} " +
                           $"--self-contained {options.SelfContained.ToString().ToLower()} " +
@@ -110,8 +115,8 @@ public class ExportService
                 {
                     FileName = "dotnet",
                     Arguments = arguments,
-                    WorkingDirectory = _projectPath,
-                    UseShellExecute = false,
+                WorkingDirectory = _projectRoot,
+                UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true
@@ -144,16 +149,57 @@ public class ExportService
     /// <summary>
     /// Copy content files to output directory.
     /// </summary>
-    private void CopyContentFiles(string outputPath)
+    private bool CopyProjectFiles(string outputPath)
     {
-        var contentPath = Path.Combine(_projectPath, "Content");
-        if (!Directory.Exists(contentPath))
-            return;
+        var projectRoot = ResolveProjectRoot(_projectRoot);
+        if (!Directory.Exists(projectRoot))
+        {
+            ReportProgress($"Project root not found: {projectRoot}");
+            return false;
+        }
 
-        var destContentPath = Path.Combine(outputPath, "Content");
-        Directory.CreateDirectory(destContentPath);
+        var projectFilePath = ProjectManager.ProjectFilePath
+            ?? Path.Combine(projectRoot, ProjectManager.ProjectFileName);
 
-        CopyDirectory(contentPath, destContentPath);
+        if (!File.Exists(projectFilePath))
+        {
+            ReportProgress($"Project file not found: {projectFilePath}");
+            return false;
+        }
+
+        var outputProjectFilePath = Path.Combine(outputPath, ProjectManager.ProjectFileName);
+        File.Copy(projectFilePath, outputProjectFilePath, true);
+
+        var project = ProjectManager.CurrentProject;
+        var contentDirectories = project != null
+            ? new[]
+            {
+                (Path.Combine(projectRoot, project.MapsPath), project.MapsPath, "Maps"),
+                (Path.Combine(projectRoot, project.DatabasePath), project.DatabasePath, "Database"),
+                (Path.Combine(projectRoot, project.AssetsPath), project.AssetsPath, "Assets")
+            }
+            : new[]
+            {
+                (Path.Combine(projectRoot, "Maps"), "Maps", "Maps"),
+                (Path.Combine(projectRoot, "Database"), "Database", "Database"),
+                (Path.Combine(projectRoot, "Assets"), "Assets", "Assets")
+            };
+
+        foreach (var (sourcePath, relativePath, label) in contentDirectories)
+        {
+            var destinationPath = Path.Combine(outputPath, relativePath);
+
+            if (!Directory.Exists(sourcePath))
+            {
+                ReportProgress($"Source {label} folder missing. Creating empty folder: {destinationPath}");
+                Directory.CreateDirectory(destinationPath);
+                continue;
+            }
+
+            CopyDirectory(sourcePath, destinationPath);
+        }
+
+        return ValidateExportOutput(outputPath, outputProjectFilePath, contentDirectories);
     }
 
     /// <summary>
@@ -219,6 +265,76 @@ public class ExportService
     {
         Console.WriteLine(message);
         ProgressUpdate?.Invoke(this, message);
+    }
+
+    private static string ResolveProjectRoot(string projectPath)
+    {
+        if (ProjectManager.ProjectRoot != null)
+            return ProjectManager.ProjectRoot;
+
+        return projectPath;
+    }
+
+    private static string ResolveRuntimeProjectPath(string projectPath)
+    {
+        var rootsToCheck = new[] { AppContext.BaseDirectory, projectPath };
+
+        foreach (var root in rootsToCheck)
+        {
+            var solutionRoot = FindSolutionRoot(root);
+            var gameProject = Path.Combine(solutionRoot, "src", "PixelForge.Game", "PixelForge.Game.csproj");
+            if (File.Exists(gameProject))
+                return gameProject;
+
+            var editorProject = Path.Combine(solutionRoot, "src", "PixelForge.Editor", "PixelForge.Editor.csproj");
+            if (File.Exists(editorProject))
+                return editorProject;
+        }
+
+        throw new FileNotFoundException("Runtime game project not found. Expected PixelForge.Game or PixelForge.Editor project.");
+    }
+
+    private static string FindSolutionRoot(string startPath)
+    {
+        var directory = new DirectoryInfo(startPath);
+        if (File.Exists(startPath))
+        {
+            directory = new DirectoryInfo(Path.GetDirectoryName(startPath)!);
+        }
+
+        while (directory != null)
+        {
+            var solutionPath = Path.Combine(directory.FullName, SolutionFileName);
+            if (File.Exists(solutionPath))
+                return directory.FullName;
+
+            directory = directory.Parent;
+        }
+
+        return startPath;
+    }
+
+    private bool ValidateExportOutput(
+        string outputPath,
+        string outputProjectFilePath,
+        (string SourcePath, string RelativePath, string Label)[] contentDirectories)
+    {
+        var missingItems = contentDirectories
+            .Select(item => (item.RelativePath, item.Label))
+            .Where(item => !Directory.Exists(Path.Combine(outputPath, item.RelativePath)))
+            .Select(item => item.Label)
+            .ToList();
+
+        if (!File.Exists(outputProjectFilePath))
+        {
+            missingItems.Add(ProjectManager.ProjectFileName);
+        }
+
+        if (missingItems.Count == 0)
+            return true;
+
+        ReportProgress($"Export validation failed. Missing: {string.Join(", ", missingItems)}");
+        return false;
     }
 }
 

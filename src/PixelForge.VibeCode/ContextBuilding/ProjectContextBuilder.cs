@@ -92,12 +92,43 @@ A single layer in a map.
 - 102: Show Choices
 - 103: Input Number
 - 111: Conditional Branch
+- 112: Loop
+- 113: Break Loop
+- 115: Exit Event Processing
+- 118: Label
+- 119: Jump to Label
 - 121: Control Switches
 - 122: Control Variables
+- 123: Control Self Switch
+- 125: Change Gold
+- 126: Change Items
+- 129: Change Party Member
 - 201: Transfer Player
+- 204: Scroll Map
+- 205: Set Movement Route
+- 214: Erase Event
+- 221: Fadeout Screen
+- 222: Fadein Screen
+- 223: Tint Screen
+- 224: Flash Screen
+- 225: Shake Screen
+- 230: Wait
+- 231: Show Picture
+- 232: Move Picture
+- 233: Rotate Picture
+- 234: Tint Picture
+- 235: Erase Picture
+- 241: Play BGM
+- 242: Fadeout BGM
+- 245: Play BGS
+- 246: Fadeout BGS
+- 249: Play ME
+- 250: Play SE
+- 251: Stop SE
 - 301: Battle Processing
 - 302: Shop Processing
 - 355: Script (C# code)
+- 413: Repeat Above
 
 ## Custom Scripts
 

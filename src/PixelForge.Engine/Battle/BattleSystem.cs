@@ -164,6 +164,7 @@ public class Battler
 
     public float ATBGauge { get; set; }
     public List<State> States { get; set; } = new();
+    public bool IsGuarding { get; set; }
 
     // Learned skills for actors
     public List<string> LearnedSkills { get; set; } = new();
@@ -205,6 +206,7 @@ public class BattleAction
     public required Battler User { get; set; }
     public Skill? Skill { get; set; }
     public Item? Item { get; set; }
+    public string? ItemId { get; set; }
     public List<Battler> Targets { get; set; } = new();
     public ActionType Type { get; set; }
 }

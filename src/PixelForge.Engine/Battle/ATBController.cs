@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 using PixelForge.Engine.Core;
 using PixelForge.Engine.UI.Battle;
 using PixelForge.Shared.Models.Database;
@@ -67,6 +68,7 @@ public class ATBController : IBattleController
     public void Cleanup()
     {
         _readyQueue.Clear();
+        _inputBattler = null;
     }
 
     /// <summary>
@@ -219,6 +221,10 @@ public class ATBController : IBattleController
         // Reset ATB gauge
         action.User.ATBGauge = 0f;
         _readyQueue.Remove(action.User);
+        if (_inputBattler == action.User)
+        {
+            _inputBattler = null;
+        }
     }
 
     /// <summary>
@@ -226,6 +232,7 @@ public class ATBController : IBattleController
     /// </summary>
     private void ExecuteAction(BattleAction action)
     {
+        action.User.IsGuarding = false;
         switch (action.Type)
         {
             case ActionType.Attack:
@@ -437,5 +444,230 @@ public class ATBController : IBattleController
     private IEnumerable<Battler> GetAllBattlers()
     {
         return _state.Party.Concat(_state.Enemies);
+    }
+
+    private void ResetInputState()
+    {
+        _inputState = BattleInputState.Command;
+        _commandIndex = 0;
+        _skillIndex = 0;
+        _itemIndex = 0;
+        _targetIndex = 0;
+        _pendingAction = null;
+        _pendingScope = SkillScope.None;
+        _availableSkills.Clear();
+        _availableItems.Clear();
+    }
+
+    private void HandleCommandInput(KeyboardState keyboard)
+    {
+        if (_inputBattler == null)
+            return;
+
+        if (IsPressed(keyboard, Keys.Down))
+        {
+            _commandIndex = (_commandIndex + 1) % 4;
+        }
+        else if (IsPressed(keyboard, Keys.Up))
+        {
+            _commandIndex = (_commandIndex - 1 + 4) % 4;
+        }
+
+        if (!IsPressed(keyboard, Keys.Enter))
+            return;
+
+        switch (_commandIndex)
+        {
+            case 0:
+                BeginActionSelection(ActionType.Attack, SkillScope.OneEnemy);
+                break;
+            case 1:
+                _availableSkills = BattleSelectionHelper.GetAvailableSkills(_game, _inputBattler);
+                _skillIndex = 0;
+                _inputState = BattleInputState.Skill;
+                break;
+            case 2:
+                QueueImmediateAction(new BattleAction
+                {
+                    User = _inputBattler,
+                    Type = ActionType.Guard
+                });
+                break;
+            case 3:
+                _availableItems = BattleSelectionHelper.GetAvailableItems(_game);
+                _itemIndex = 0;
+                _inputState = BattleInputState.Item;
+                break;
+        }
+    }
+
+    private void HandleSkillInput(KeyboardState keyboard)
+    {
+        if (_availableSkills.Count == 0)
+        {
+            if (IsPressed(keyboard, Keys.Escape))
+            {
+                _inputState = BattleInputState.Command;
+            }
+            return;
+        }
+
+        if (IsPressed(keyboard, Keys.Down))
+        {
+            _skillIndex = (_skillIndex + 1) % _availableSkills.Count;
+        }
+        else if (IsPressed(keyboard, Keys.Up))
+        {
+            _skillIndex = (_skillIndex - 1 + _availableSkills.Count) % _availableSkills.Count;
+        }
+
+        if (IsPressed(keyboard, Keys.Escape))
+        {
+            _inputState = BattleInputState.Command;
+            return;
+        }
+
+        if (!IsPressed(keyboard, Keys.Enter))
+            return;
+
+        var skill = _availableSkills[_skillIndex];
+        if (!CanUseSkill(skill))
+            return;
+
+        var action = new BattleAction
+        {
+            User = _inputBattler!,
+            Type = ActionType.Skill,
+            Skill = skill
+        };
+
+        BeginActionSelection(action, skill.Scope);
+    }
+
+    private void HandleItemInput(KeyboardState keyboard)
+    {
+        if (_availableItems.Count == 0)
+        {
+            if (IsPressed(keyboard, Keys.Escape))
+            {
+                _inputState = BattleInputState.Command;
+            }
+            return;
+        }
+
+        if (IsPressed(keyboard, Keys.Down))
+        {
+            _itemIndex = (_itemIndex + 1) % _availableItems.Count;
+        }
+        else if (IsPressed(keyboard, Keys.Up))
+        {
+            _itemIndex = (_itemIndex - 1 + _availableItems.Count) % _availableItems.Count;
+        }
+
+        if (IsPressed(keyboard, Keys.Escape))
+        {
+            _inputState = BattleInputState.Command;
+            return;
+        }
+
+        if (!IsPressed(keyboard, Keys.Enter))
+            return;
+
+        var option = _availableItems[_itemIndex];
+        var action = new BattleAction
+        {
+            User = _inputBattler!,
+            Type = ActionType.Item,
+            Item = option.Item,
+            ItemId = option.Id
+        };
+
+        BeginActionSelection(action, option.Item.Scope);
+    }
+
+    private void HandleTargetInput(KeyboardState keyboard)
+    {
+        if (_pendingAction == null || _inputBattler == null)
+            return;
+
+        var candidates = BattleTargeting.GetSelectableTargets(_state, _inputBattler, _pendingScope);
+        if (candidates.Count == 0)
+        {
+            _inputState = BattleInputState.Command;
+            return;
+        }
+
+        if (IsPressed(keyboard, Keys.Left) || IsPressed(keyboard, Keys.Up))
+        {
+            _targetIndex = (_targetIndex - 1 + candidates.Count) % candidates.Count;
+        }
+        else if (IsPressed(keyboard, Keys.Right) || IsPressed(keyboard, Keys.Down))
+        {
+            _targetIndex = (_targetIndex + 1) % candidates.Count;
+        }
+
+        if (IsPressed(keyboard, Keys.Escape))
+        {
+            _inputState = BattleInputState.Command;
+            return;
+        }
+
+        if (!IsPressed(keyboard, Keys.Enter))
+            return;
+
+        _pendingAction.Targets = BattleTargeting.SelectTargets(_state, _inputBattler, _pendingScope, _targetIndex);
+        QueueImmediateAction(_pendingAction);
+    }
+
+    private void BeginActionSelection(ActionType actionType, SkillScope scope)
+    {
+        if (_inputBattler == null)
+            return;
+
+        var action = new BattleAction
+        {
+            User = _inputBattler,
+            Type = actionType
+        };
+
+        BeginActionSelection(action, scope);
+    }
+
+    private void BeginActionSelection(BattleAction action, SkillScope scope)
+    {
+        if (_inputBattler == null)
+            return;
+
+        if (BattleTargeting.RequiresTargetSelection(scope))
+        {
+            _pendingAction = action;
+            _pendingScope = scope;
+            _targetIndex = 0;
+            _inputState = BattleInputState.Target;
+            return;
+        }
+
+        action.Targets = BattleTargeting.SelectTargets(_state, _inputBattler, scope, 0);
+        QueueImmediateAction(action);
+    }
+
+    private void QueueImmediateAction(BattleAction action)
+    {
+        _state.ActionQueue.Enqueue(action);
+        _state.Phase = BattlePhase.Execution;
+    }
+
+    private bool CanUseSkill(Skill skill)
+    {
+        if (_inputBattler == null)
+            return false;
+
+        return _inputBattler.CurrentMp >= skill.MpCost &&
+               _inputBattler.CurrentTp >= skill.TpCost;
+    }
+
+    private bool IsPressed(KeyboardState keyboard, Keys key)
+    {
+        return keyboard.IsKeyDown(key) && _previousKeyboard.IsKeyUp(key);
     }
 }

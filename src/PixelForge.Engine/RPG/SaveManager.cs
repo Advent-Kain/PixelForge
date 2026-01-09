@@ -268,6 +268,7 @@ public class SaveManager
                 };
             }
 
+            actor.Database = game.GetDatabase();
             actor.Level = member.Level;
             actor.Experience = member.Experience;
             actor.CurrentHp = member.CurrentHp;
