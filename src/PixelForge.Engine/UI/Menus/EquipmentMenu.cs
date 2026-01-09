@@ -52,11 +52,11 @@ public class EquipmentMenu : IMenu
         int partyCount = Math.Max(1, partyManager.Party.Count);
 
         // Navigate actors (Left/Right)
-        if (party.Count > 0 && keyboard.IsKeyDown(Keys.Right) && _previousKeyboard.IsKeyUp(Keys.Right))
+        if (partyManager.Party.Count > 0 && keyboard.IsKeyDown(Keys.Right) && _previousKeyboard.IsKeyUp(Keys.Right))
         {
             _selectedActorIndex = (_selectedActorIndex + 1) % partyCount;
         }
-        else if (party.Count > 0 && keyboard.IsKeyDown(Keys.Left) && _previousKeyboard.IsKeyUp(Keys.Left))
+        else if (partyManager.Party.Count > 0 && keyboard.IsKeyDown(Keys.Left) && _previousKeyboard.IsKeyUp(Keys.Left))
         {
             _selectedActorIndex = (_selectedActorIndex - 1 + partyCount) % partyCount;
         }
@@ -107,10 +107,24 @@ public class EquipmentMenu : IMenu
             currentActor = partyManager.Party[_selectedActorIndex];
         }
 
+        if (currentActor == null)
+        {
+            Vector2 emptyPos = new Vector2(windowRect.X + 20, windowRect.Y + 50);
+            spriteBatch.DrawString(font, "No party members.", emptyPos, Color.Gray);
+            return;
+        }
+
+        var currentStats = currentActor.GetCurrentStats();
+        int maxHp = Math.Max(1, currentStats.MaxHp);
+        int maxMp = Math.Max(1, currentStats.MaxMp);
+        int currentHp = Math.Clamp(currentActor.CurrentHp, 0, maxHp);
+        int currentMp = Math.Clamp(currentActor.CurrentMp, 0, maxMp);
+        string className = currentActor.ClassData?.Name ?? "Unknown Class";
+
         // Draw actor name
         string actorName = currentActor?.ActorData?.Name ?? $"Actor {_selectedActorIndex + 1}";
         Vector2 namePos = new Vector2(windowRect.X + 20, windowRect.Y + 50);
-        spriteBatch.DrawString(font, $"{actorName} - {className} (Lv {actor.Level})", namePos, Color.Cyan);
+        spriteBatch.DrawString(font, $"{actorName} - {className} (Lv {currentActor.Level})", namePos, Color.Cyan);
         spriteBatch.DrawString(font, $"HP: {currentHp}/{maxHp}   MP: {currentMp}/{maxMp}", namePos + new Vector2(0, 25), Color.White);
 
         // Draw equipment slots
@@ -128,16 +142,7 @@ public class EquipmentMenu : IMenu
             }
 
             // Get equipped item name
-            string equippedName = "None";
-            if (currentActor != null)
-            {
-                var equipId = currentActor.GetEquippedId(Slots[i].Slot);
-                if (!string.IsNullOrEmpty(equipId))
-                {
-                    var equipment = database.GetEquipment(equipId);
-                    equippedName = equipment?.Name ?? equipId;
-                }
-            }
+            string equippedName = GetEquippedName(currentActor, Slots[i].Slot);
 
             string slotText = $"{Slots[i].Name}: {equippedName}";
             spriteBatch.DrawString(font, slotText, pos, color);
@@ -206,9 +211,9 @@ public class EquipmentMenu : IMenu
         return party[_selectedActorIndex];
     }
 
-    private string GetEquippedName(GameActor actor, string slotKey)
+    private string GetEquippedName(GameActor actor, EquipSlot slot)
     {
-        if (!actor.EquippedItems.TryGetValue(slotKey, out var itemId) || string.IsNullOrEmpty(itemId))
+        if (!actor.EquippedItems.TryGetValue(slot, out var itemId) || string.IsNullOrEmpty(itemId))
             return "None";
 
         var equipment = _game.GetDatabase().GetEquipment(itemId);
