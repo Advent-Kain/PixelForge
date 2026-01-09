@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace PixelForge.Shared.Models.Database;
@@ -111,15 +113,12 @@ public class GrowthCurve
 }
 
 /// <summary>
-/// Equipment slot configuration.
+/// Equipment slot configuration - defines which slots an actor can use.
 /// </summary>
 public class EquipSlots
 {
     [JsonPropertyName("weapon")]
     public bool Weapon { get; set; } = true;
-
-    [JsonPropertyName("shield")]
-    public bool Shield { get; set; } = true;
 
     [JsonPropertyName("head")]
     public bool Head { get; set; } = true;
@@ -127,11 +126,14 @@ public class EquipSlots
     [JsonPropertyName("body")]
     public bool Body { get; set; } = true;
 
+    [JsonPropertyName("legs")]
+    public bool Legs { get; set; } = true;
+
     [JsonPropertyName("accessory1")]
     public bool Accessory1 { get; set; } = true;
 
     [JsonPropertyName("accessory2")]
-    public bool Accessory2 { get; set; }
+    public bool Accessory2 { get; set; } = true;
 }
 
 /// <summary>

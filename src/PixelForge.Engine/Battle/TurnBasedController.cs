@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using PixelForge.Engine.Core;
+using PixelForge.Engine.UI.Battle;
 using PixelForge.Shared.Models.Database;
 
 namespace PixelForge.Engine.Battle;
@@ -12,24 +13,22 @@ public class TurnBasedController : IBattleController
 {
     private readonly GameEngine _game;
     private readonly BattleState _state;
+    private readonly RPG.GameDatabase _database;
+    private readonly BattleMenuManager _battleMenu;
     private List<Battler> _turnOrder = new();
     private int _currentBattlerIndex;
     private Battler? _currentBattler;
-    private BattleInputState _inputState = BattleInputState.Command;
-    private int _commandIndex;
-    private int _skillIndex;
-    private int _itemIndex;
-    private int _targetIndex;
-    private BattleAction? _pendingAction;
-    private SkillScope _pendingScope = SkillScope.None;
-    private List<Skill> _availableSkills = new();
-    private List<BattleItemOption> _availableItems = new();
-    private KeyboardState _previousKeyboard;
+    private bool _waitingForInput;
+
+    // Default attack formula when no weapon is equipped
+    private const string DefaultAttackFormula = "a.atk * 4 - b.def * 2";
 
     public TurnBasedController(GameEngine game, BattleState state)
     {
         _game = game;
         _state = state;
+        _database = game.GetDatabase();
+        _battleMenu = game.GetBattleMenuManager();
     }
 
     public void Initialize()
@@ -118,25 +117,47 @@ public class TurnBasedController : IBattleController
         if (_currentBattler == null || !_currentBattler.IsActor)
             return;
 
-        var keyboard = Keyboard.GetState();
+        // If we're already waiting for input, don't open menu again
+        if (_waitingForInput)
+            return;
 
-        switch (_inputState)
+        // Open battle menu for player input
+        _waitingForInput = true;
+        _battleMenu.Open(_currentBattler, _state, OnActionSelected);
+    }
+
+    /// <summary>
+    /// Callback when player selects an action from the menu.
+    /// </summary>
+    private void OnActionSelected(BattleAction? action)
+    {
+        _waitingForInput = false;
+
+        if (action == null)
         {
-            case BattleInputState.Command:
-                HandleCommandInput(keyboard);
-                break;
-            case BattleInputState.Skill:
-                HandleSkillInput(keyboard);
-                break;
-            case BattleInputState.Item:
-                HandleItemInput(keyboard);
-                break;
-            case BattleInputState.Target:
-                HandleTargetInput(keyboard);
-                break;
+            // Player cancelled or tried to escape
+            return;
         }
 
-        _previousKeyboard = keyboard;
+        // Handle escape action
+        if (action.Type == ActionType.Escape)
+        {
+            // Simple escape check - 50% base chance
+            if (Random.Shared.Next(100) < 50)
+            {
+                _state.Phase = BattlePhase.Escape;
+            }
+            else
+            {
+                // Escape failed, end turn
+                _state.Phase = BattlePhase.TurnEnd;
+            }
+            return;
+        }
+
+        // Queue the action for execution
+        _state.ActionQueue.Enqueue(action);
+        _state.Phase = BattlePhase.Execution;
     }
 
     /// <summary>
@@ -190,9 +211,21 @@ public class TurnBasedController : IBattleController
             if (!target.IsAlive)
                 continue;
 
-            // Simple damage calculation
+            // Check hit rate (base 95% for physical attacks)
+            if (!DamageFormulaEvaluator.CheckHit(95f, action.User.Stats.Agility, target.Stats.Agility))
+                continue; // Miss
+
+            // Calculate damage using formula
             int damage = CalculateDamage(action.User, target);
-            ApplyDamage(target, damage);
+
+            // Check for critical hit (base 4% + luck difference)
+            if (DamageFormulaEvaluator.IsCriticalHit(4f, action.User.Stats.Luck, target.Stats.Luck))
+            {
+                damage = DamageFormulaEvaluator.ApplyCritical(damage);
+            }
+
+            // Apply damage (uses Battler's method which accounts for guard)
+            target.ApplyDamage(damage);
         }
     }
 
@@ -210,19 +243,48 @@ public class TurnBasedController : IBattleController
 
         foreach (var target in action.Targets)
         {
-            if (!target.IsAlive)
+            // Allow targeting dead allies for revival skills
+            if (!target.IsAlive && action.Skill.Scope != SkillScope.OneAllyDead && action.Skill.Scope != SkillScope.AllAlliesDead)
                 continue;
 
-            // Apply skill effects
-            int damage = CalculateSkillDamage(action.User, target, action.Skill);
-            if (damage > 0)
+            // Calculate and apply damage/healing based on damage type
+            if (action.Skill.Damage.Type != DamageType.None)
             {
-                ApplyDamage(target, damage);
+                int damage = CalculateSkillDamage(action.User, target, action.Skill);
+
+                switch (action.Skill.Damage.Type)
+                {
+                    case DamageType.HpDamage:
+                        target.ApplyDamage(damage);
+                        break;
+
+                    case DamageType.MpDamage:
+                        target.CurrentMp = Math.Max(0, target.CurrentMp - damage);
+                        break;
+
+                    case DamageType.HpRecover:
+                        target.ApplyHealing(damage);
+                        break;
+
+                    case DamageType.MpRecover:
+                        target.CurrentMp = Math.Min(target.MaxMp, target.CurrentMp + damage);
+                        break;
+
+                    case DamageType.HpDrain:
+                        int drained = target.ApplyDamage(damage);
+                        action.User.ApplyHealing(drained);
+                        break;
+
+                    case DamageType.MpDrain:
+                        int mpDrained = Math.Min(damage, target.CurrentMp);
+                        target.CurrentMp -= mpDrained;
+                        action.User.CurrentMp = Math.Min(action.User.MaxMp, action.User.CurrentMp + mpDrained);
+                        break;
+                }
             }
-            else if (damage < 0)
-            {
-                ApplyHealing(target, -damage);
-            }
+
+            // Apply additional effects (states, buffs, etc.)
+            ApplySkillEffects(target, action.Skill);
         }
     }
 
@@ -239,7 +301,57 @@ public class TurnBasedController : IBattleController
     /// </summary>
     private void ExecuteItem(BattleAction action)
     {
-        BattleItemEffects.ApplyItem(_game, action);
+        if (action.Item == null)
+            return;
+
+        foreach (var target in action.Targets)
+        {
+            if (!target.IsAlive && action.Item.Scope != SkillScope.OneAllyDead && action.Item.Scope != SkillScope.AllAlliesDead)
+                continue;
+
+            ApplyItemEffects(target, action.Item);
+        }
+    }
+
+    /// <summary>
+    /// Apply item effects to a target.
+    /// </summary>
+    private void ApplyItemEffects(Battler target, Item item)
+    {
+        foreach (var effect in item.Effects)
+        {
+            switch (effect.Code)
+            {
+                case EffectCode.RecoverHp:
+                    // Value1 = percentage, Value2 = flat amount
+                    int hpRecovery = (int)(target.MaxHp * effect.Value1 / 100) + (int)effect.Value2;
+                    target.ApplyHealing(hpRecovery);
+                    break;
+
+                case EffectCode.RecoverMp:
+                    int mpRecovery = (int)(target.MaxMp * effect.Value1 / 100) + (int)effect.Value2;
+                    target.CurrentMp = Math.Min(target.MaxMp, target.CurrentMp + mpRecovery);
+                    break;
+
+                case EffectCode.AddState:
+                    if (effect.DataId != null)
+                    {
+                        var state = _database.GetState(effect.DataId);
+                        if (state != null && !target.States.Any(s => s.Id == state.Id))
+                        {
+                            target.States.Add(state);
+                        }
+                    }
+                    break;
+
+                case EffectCode.RemoveState:
+                    if (effect.DataId != null)
+                    {
+                        target.States.RemoveAll(s => s.Id == effect.DataId);
+                    }
+                    break;
+            }
+        }
     }
 
     /// <summary>
@@ -247,6 +359,12 @@ public class TurnBasedController : IBattleController
     /// </summary>
     private void EndTurn()
     {
+        // Clear guard state at end of turn
+        if (_currentBattler != null)
+        {
+            _currentBattler.IsGuarding = false;
+        }
+
         _currentBattlerIndex++;
         StartNewTurn();
     }
@@ -259,7 +377,47 @@ public class TurnBasedController : IBattleController
         if (_currentBattler == null)
             return;
 
-        // Simple AI: Random attack on random target
+        // Get enemy data for AI patterns
+        var enemyData = _currentBattler.EnemyId != null ? _database.GetEnemy(_currentBattler.EnemyId) : null;
+
+        // Check if enemy has skills to use
+        if (enemyData?.Actions != null && enemyData.Actions.Count > 0)
+        {
+            var validActions = enemyData.Actions.Where(a => CanUseEnemyAction(a, _currentBattler)).ToList();
+            if (validActions.Count > 0)
+            {
+                // Weight-based random selection
+                int totalWeight = validActions.Sum(a => a.Rating);
+                int roll = new Random().Next(totalWeight);
+                int cumulative = 0;
+
+                foreach (var enemyAction in validActions)
+                {
+                    cumulative += enemyAction.Rating;
+                    if (roll < cumulative)
+                    {
+                        var skill = _database.GetSkill(enemyAction.SkillId);
+                        if (skill != null)
+                        {
+                            var targets = SelectTargetsForSkill(skill, _currentBattler);
+                            var action = new BattleAction
+                            {
+                                User = _currentBattler,
+                                Type = ActionType.Skill,
+                                Skill = skill,
+                                Targets = targets
+                            };
+                            _state.ActionQueue.Enqueue(action);
+                            _state.Phase = BattlePhase.Execution;
+                            return;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Default: Random attack on random target
         var random = new Random();
         var target = _state.Party.Where(b => b.IsAlive).OrderBy(_ => random.Next()).FirstOrDefault();
 
@@ -278,36 +436,186 @@ public class TurnBasedController : IBattleController
     }
 
     /// <summary>
-    /// Calculate physical damage.
+    /// Check if enemy can use an action.
+    /// </summary>
+    private bool CanUseEnemyAction(EnemyAction action, Battler enemy)
+    {
+        var skill = _database.GetSkill(action.SkillId);
+        if (skill == null)
+            return false;
+
+        if (enemy.CurrentMp < skill.MpCost)
+            return false;
+
+        if (enemy.CurrentTp < skill.TpCost)
+            return false;
+
+        // Check conditions
+        if (action.Condition != null)
+        {
+            switch (action.Condition.Type)
+            {
+                case ActionConditionType.TurnCount:
+                    if (_state.TurnCount < action.Condition.TurnStart ||
+                        (_state.TurnCount - action.Condition.TurnStart) % action.Condition.TurnEnd != 0)
+                        return false;
+                    break;
+
+                case ActionConditionType.HpBelow:
+                    float hpPercent = (float)enemy.CurrentHp / enemy.MaxHp * 100;
+                    if (hpPercent > action.Condition.Value)
+                        return false;
+                    break;
+
+                case ActionConditionType.MpBelow:
+                    float mpPercent = (float)enemy.CurrentMp / enemy.MaxMp * 100;
+                    if (mpPercent > action.Condition.Value)
+                        return false;
+                    break;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Select targets for a skill based on scope.
+    /// </summary>
+    private List<Battler> SelectTargetsForSkill(Skill skill, Battler user)
+    {
+        var random = new Random();
+        var targets = new List<Battler>();
+
+        var allies = user.IsActor ? _state.Party : _state.Enemies;
+        var enemies = user.IsActor ? _state.Enemies : _state.Party;
+
+        switch (skill.Scope)
+        {
+            case SkillScope.OneEnemy:
+                var enemy = enemies.Where(b => b.IsAlive).OrderBy(_ => random.Next()).FirstOrDefault();
+                if (enemy != null) targets.Add(enemy);
+                break;
+
+            case SkillScope.AllEnemies:
+                targets.AddRange(enemies.Where(b => b.IsAlive));
+                break;
+
+            case SkillScope.RandomEnemies:
+            case SkillScope.TwoRandomEnemies:
+            case SkillScope.ThreeRandomEnemies:
+            case SkillScope.FourRandomEnemies:
+                int count = skill.Scope switch
+                {
+                    SkillScope.TwoRandomEnemies => 2,
+                    SkillScope.ThreeRandomEnemies => 3,
+                    SkillScope.FourRandomEnemies => 4,
+                    _ => 1
+                };
+                var randomTargets = enemies.Where(b => b.IsAlive).OrderBy(_ => random.Next()).Take(count);
+                targets.AddRange(randomTargets);
+                break;
+
+            case SkillScope.OneAlly:
+                var ally = allies.Where(b => b.IsAlive).OrderBy(_ => random.Next()).FirstOrDefault();
+                if (ally != null) targets.Add(ally);
+                break;
+
+            case SkillScope.AllAllies:
+                targets.AddRange(allies.Where(b => b.IsAlive));
+                break;
+
+            case SkillScope.OneAllyDead:
+                var deadAlly = allies.Where(b => !b.IsAlive).FirstOrDefault();
+                if (deadAlly != null) targets.Add(deadAlly);
+                break;
+
+            case SkillScope.AllAlliesDead:
+                targets.AddRange(allies.Where(b => !b.IsAlive));
+                break;
+
+            case SkillScope.User:
+                targets.Add(user);
+                break;
+        }
+
+        return targets;
+    }
+
+    /// <summary>
+    /// Calculate physical damage using formula evaluator.
     /// </summary>
     private int CalculateDamage(Battler attacker, Battler defender)
     {
-        return BattleFormulaEvaluator.CalculateAttackDamage(_game, attacker, defender);
+        // Use default attack formula
+        int baseDamage = DamageFormulaEvaluator.Evaluate(DefaultAttackFormula, attacker.Stats, defender.Stats);
+
+        // Apply variance (20% default)
+        int finalDamage = DamageFormulaEvaluator.ApplyVariance(baseDamage, 20);
+
+        return Math.Max(1, finalDamage);
     }
 
     /// <summary>
-    /// Calculate skill damage.
+    /// Calculate skill damage using the skill's damage formula.
     /// </summary>
-    private int CalculateSkillDamage(Battler user, Battler target, Shared.Models.Database.Skill skill)
+    private int CalculateSkillDamage(Battler user, Battler target, Skill skill)
     {
-        return BattleFormulaEvaluator.CalculateSkillDamage(_game, user, target, skill);
+        var damageResult = DamageFormulaEvaluator.CalculateFullDamage(
+            skill.Damage,
+            user.Stats,
+            target.Stats,
+            skill.HitRate,
+            skill.CriticalRate
+        );
+
+        if (damageResult.IsMiss)
+            return 0;
+
+        return damageResult.Damage;
     }
 
     /// <summary>
-    /// Apply damage to battler.
+    /// Apply skill effects (states, buffs, etc.)
     /// </summary>
-    private void ApplyDamage(Battler target, int damage)
+    private void ApplySkillEffects(Battler target, Skill skill)
     {
-        target.CurrentHp = Math.Max(0, target.CurrentHp - damage);
-    }
+        foreach (var effect in skill.Effects)
+        {
+            switch (effect.Code)
+            {
+                case EffectCode.AddState:
+                    if (effect.DataId != null)
+                    {
+                        // Check chance (Value1 is percentage)
+                        if (new Random().NextDouble() * 100 < effect.Value1)
+                        {
+                            var state = _database.GetState(effect.DataId);
+                            if (state != null && !target.States.Any(s => s.Id == state.Id))
+                            {
+                                target.States.Add(state);
+                            }
+                        }
+                    }
+                    break;
 
-    /// <summary>
-    /// Apply healing to battler.
-    /// </summary>
-    private void ApplyHealing(Battler target, int healing)
-    {
-        int maxHp = BattleFormulaEvaluator.GetMaxHp(_game, target);
-        target.CurrentHp = Math.Min(maxHp, target.CurrentHp + healing);
+                case EffectCode.RemoveState:
+                    if (effect.DataId != null)
+                    {
+                        target.States.RemoveAll(s => s.Id == effect.DataId);
+                    }
+                    break;
+
+                case EffectCode.RecoverHp:
+                    int hpRecovery = (int)(target.MaxHp * effect.Value1 / 100) + (int)effect.Value2;
+                    target.ApplyHealing(hpRecovery);
+                    break;
+
+                case EffectCode.RecoverMp:
+                    int mpRecovery = (int)(target.MaxMp * effect.Value1 / 100) + (int)effect.Value2;
+                    target.CurrentMp = Math.Min(target.MaxMp, target.CurrentMp + mpRecovery);
+                    break;
+            }
+        }
     }
 
     private void ResetInputState()

@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using PixelForge.Engine.Core;
 using PixelForge.Engine.RPG;
+using PixelForge.Shared.Models.Database;
 
 namespace PixelForge.Engine.UI;
 
@@ -14,14 +15,17 @@ public class EquipmentMenu : IMenu
     private readonly GameEngine _game;
     private int _selectedActorIndex;
     private int _selectedSlotIndex;
-    private readonly (string Label, string Key)[] _slots =
+
+    // Standard equipment slots: Weapon, Head, Body, Legs, Accessory1, Accessory2
+    private static readonly (string Name, EquipSlot Slot)[] Slots = new[]
     {
-        ("Weapon", "weapon"),
-        ("Shield", "shield"),
-        ("Head", "head"),
-        ("Body", "body"),
-        ("Accessory 1", "accessory1"),
-        ("Accessory 2", "accessory2")
+        ("Weapon", EquipSlot.Weapon),
+        ("Head", EquipSlot.Head),
+        ("Body", EquipSlot.Body),
+        ("Arms", EquipSlot.Arms),
+        ("Legs", EquipSlot.Legs),
+        ("Accessory 1", EquipSlot.Accessory1),
+        ("Accessory 2", EquipSlot.Accessory2)
     };
 
     private KeyboardState _previousKeyboard;
@@ -44,26 +48,27 @@ public class EquipmentMenu : IMenu
     public void Update(GameTime gameTime)
     {
         var keyboard = Keyboard.GetState();
-        var party = _game.GetPartyManager().Party;
+        var partyManager = _game.GetPartyManager();
+        int partyCount = Math.Max(1, partyManager.Party.Count);
 
         // Navigate actors (Left/Right)
         if (party.Count > 0 && keyboard.IsKeyDown(Keys.Right) && _previousKeyboard.IsKeyUp(Keys.Right))
         {
-            _selectedActorIndex = (_selectedActorIndex + 1) % party.Count;
+            _selectedActorIndex = (_selectedActorIndex + 1) % partyCount;
         }
         else if (party.Count > 0 && keyboard.IsKeyDown(Keys.Left) && _previousKeyboard.IsKeyUp(Keys.Left))
         {
-            _selectedActorIndex = (_selectedActorIndex - 1 + party.Count) % party.Count;
+            _selectedActorIndex = (_selectedActorIndex - 1 + partyCount) % partyCount;
         }
 
         // Navigate slots (Up/Down)
         if (keyboard.IsKeyDown(Keys.Down) && _previousKeyboard.IsKeyUp(Keys.Down))
         {
-            _selectedSlotIndex = (_selectedSlotIndex + 1) % _slots.Length;
+            _selectedSlotIndex = (_selectedSlotIndex + 1) % Slots.Length;
         }
         else if (keyboard.IsKeyDown(Keys.Up) && _previousKeyboard.IsKeyUp(Keys.Up))
         {
-            _selectedSlotIndex = (_selectedSlotIndex - 1 + _slots.Length) % _slots.Length;
+            _selectedSlotIndex = (_selectedSlotIndex - 1 + Slots.Length) % Slots.Length;
         }
 
         // Change equipment (Enter)
@@ -78,6 +83,8 @@ public class EquipmentMenu : IMenu
     public void Draw(SpriteBatch spriteBatch, SpriteFont font, Texture2D pixelTexture)
     {
         var viewport = spriteBatch.GraphicsDevice.Viewport;
+        var partyManager = _game.GetPartyManager();
+        var database = _game.GetDatabase();
 
         // Draw background
         spriteBatch.Draw(pixelTexture,
@@ -93,29 +100,21 @@ public class EquipmentMenu : IMenu
         Vector2 titlePos = new Vector2(windowRect.X + 20, windowRect.Y + 10);
         spriteBatch.DrawString(font, "Equipment", titlePos, Color.White);
 
-        var actor = GetSelectedActor();
-        if (actor == null)
+        // Get current actor
+        GameActor? currentActor = null;
+        if (_selectedActorIndex < partyManager.Party.Count)
         {
-            Vector2 emptyPos = new Vector2(windowRect.X + 20, windowRect.Y + 50);
-            spriteBatch.DrawString(font, "No party members.", emptyPos, Color.Gray);
-            return;
+            currentActor = partyManager.Party[_selectedActorIndex];
         }
 
-        var actorStats = actor.GetCurrentStats();
-        int maxHp = Math.Max(1, actorStats.MaxHp);
-        int maxMp = Math.Max(1, actorStats.MaxMp);
-        int currentHp = Math.Clamp(actor.CurrentHp, 0, maxHp);
-        int currentMp = Math.Clamp(actor.CurrentMp, 0, maxMp);
-        string actorName = actor.ActorData?.Name ?? actor.ActorId;
-        string className = actor.ClassData?.Name ?? "Unknown Class";
-
-        // Draw actor info
+        // Draw actor name
+        string actorName = currentActor?.ActorData?.Name ?? $"Actor {_selectedActorIndex + 1}";
         Vector2 namePos = new Vector2(windowRect.X + 20, windowRect.Y + 50);
         spriteBatch.DrawString(font, $"{actorName} - {className} (Lv {actor.Level})", namePos, Color.Cyan);
         spriteBatch.DrawString(font, $"HP: {currentHp}/{maxHp}   MP: {currentMp}/{maxMp}", namePos + new Vector2(0, 25), Color.White);
 
         // Draw equipment slots
-        for (int i = 0; i < _slots.Length; i++)
+        for (int i = 0; i < Slots.Length; i++)
         {
             Color color = i == _selectedSlotIndex ? Color.Yellow : Color.White;
             Vector2 pos = new Vector2(
@@ -128,11 +127,23 @@ public class EquipmentMenu : IMenu
                 spriteBatch.DrawString(font, ">", pos - new Vector2(20, 0), Color.Yellow);
             }
 
-            string slotText = $"{_slots[i].Label}: {GetEquippedName(actor, _slots[i].Key)}";
+            // Get equipped item name
+            string equippedName = "None";
+            if (currentActor != null)
+            {
+                var equipId = currentActor.GetEquippedId(Slots[i].Slot);
+                if (!string.IsNullOrEmpty(equipId))
+                {
+                    var equipment = database.GetEquipment(equipId);
+                    equippedName = equipment?.Name ?? equipId;
+                }
+            }
+
+            string slotText = $"{Slots[i].Name}: {equippedName}";
             spriteBatch.DrawString(font, slotText, pos, color);
         }
 
-        // Draw stats comparison
+        // Draw current stats
         var statsRect = new Rectangle(
             windowRect.X + windowRect.Width / 2,
             windowRect.Y + 100,
@@ -142,10 +153,34 @@ public class EquipmentMenu : IMenu
 
         Vector2 statsPos = new Vector2(statsRect.X + 10, statsRect.Y);
         spriteBatch.DrawString(font, "Stats:", statsPos, Color.White);
-        spriteBatch.DrawString(font, "ATK: 25", statsPos + new Vector2(0, 30), Color.White);
-        spriteBatch.DrawString(font, "DEF: 15", statsPos + new Vector2(0, 60), Color.White);
-        spriteBatch.DrawString(font, "M.ATK: 20", statsPos + new Vector2(0, 90), Color.White);
-        spriteBatch.DrawString(font, "M.DEF: 12", statsPos + new Vector2(0, 120), Color.White);
+
+        if (currentActor != null)
+        {
+            var stats = currentActor.GetCurrentStats();
+            spriteBatch.DrawString(font, $"HP: {currentActor.CurrentHp}/{stats.MaxHp}", statsPos + new Vector2(0, 25), Color.LightGreen);
+            spriteBatch.DrawString(font, $"MP: {currentActor.CurrentMp}/{stats.MaxMp}", statsPos + new Vector2(0, 50), Color.LightBlue);
+            spriteBatch.DrawString(font, $"ATK: {stats.Attack}", statsPos + new Vector2(0, 80), Color.White);
+            spriteBatch.DrawString(font, $"DEF: {stats.Defense}", statsPos + new Vector2(0, 105), Color.White);
+            spriteBatch.DrawString(font, $"M.ATK: {stats.MagicAttack}", statsPos + new Vector2(0, 130), Color.White);
+            spriteBatch.DrawString(font, $"M.DEF: {stats.MagicDefense}", statsPos + new Vector2(0, 155), Color.White);
+            spriteBatch.DrawString(font, $"AGI: {stats.Agility}", statsPos + new Vector2(0, 180), Color.White);
+            spriteBatch.DrawString(font, $"LUK: {stats.Luck}", statsPos + new Vector2(0, 205), Color.White);
+
+            // Show equipment-granted skills
+            var equipSkills = currentActor.GetEquipmentSkills().ToList();
+            if (equipSkills.Count > 0)
+            {
+                spriteBatch.DrawString(font, "Equipment Skills:", statsPos + new Vector2(0, 240), Color.Yellow);
+                int skillY = 265;
+                foreach (var skillId in equipSkills.Take(4))
+                {
+                    var skill = database.GetSkill(skillId);
+                    string skillName = skill?.Name ?? skillId;
+                    spriteBatch.DrawString(font, $"  {skillName}", statsPos + new Vector2(0, skillY), Color.LightCyan);
+                    skillY += 22;
+                }
+            }
+        }
     }
 
     private void ChangeEquipment()

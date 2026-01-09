@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace PixelForge.Shared.Models.Database;
@@ -150,10 +152,23 @@ public enum ItemOccasion
 public enum EquipType
 {
     Weapon,
-    Shield,
     Head,
     Body,
+    Legs,
     Accessory
+}
+
+/// <summary>
+/// Equipment slot identifiers for the equipment system.
+/// </summary>
+public enum EquipSlot
+{
+    Weapon,
+    Head,
+    Body,
+    Legs,
+    Accessory1,
+    Accessory2
 }
 
 /// <summary>
@@ -178,9 +193,9 @@ public enum WeaponType
 /// </summary>
 public enum ArmorType
 {
-    Shield = 0,
-    Helmet = 1,
-    Armor = 2,
+    Helmet = 0,
+    Armor = 1,
+    Greaves = 2,
     Accessory = 3
 }
 

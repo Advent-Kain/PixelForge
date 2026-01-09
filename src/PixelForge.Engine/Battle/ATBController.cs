@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using PixelForge.Engine.Core;
+using PixelForge.Engine.UI.Battle;
 using PixelForge.Shared.Models.Database;
 
 namespace PixelForge.Engine.Battle;
@@ -12,24 +13,25 @@ public class ATBController : IBattleController
 {
     private readonly GameEngine _game;
     private readonly BattleState _state;
+    private readonly RPG.GameDatabase _database;
+    private readonly BattleMenuManager _battleMenu;
     private readonly float _atbSpeed = 1.0f;
     private readonly List<Battler> _readyQueue = new();
-    private Battler? _inputBattler;
-    private BattleInputState _inputState = BattleInputState.Command;
-    private int _commandIndex;
-    private int _skillIndex;
-    private int _itemIndex;
-    private int _targetIndex;
-    private BattleAction? _pendingAction;
-    private SkillScope _pendingScope = SkillScope.None;
-    private List<Skill> _availableSkills = new();
-    private List<BattleItemOption> _availableItems = new();
-    private KeyboardState _previousKeyboard;
+    private Battler? _activeActor; // Currently selecting action
+    private bool _waitingForInput;
+
+    // Default attack formula
+    private const string DefaultAttackFormula = "a.atk * 4 - b.def * 2";
+
+    // Base agility for ATB calculation (characters with this agility fill gauge in ~3 seconds)
+    private const float BaseAgility = 10f;
 
     public ATBController(GameEngine game, BattleState state)
     {
         _game = game;
         _state = state;
+        _database = game.GetDatabase();
+        _battleMenu = game.GetBattleMenuManager();
     }
 
     public void Initialize()
@@ -125,38 +127,81 @@ public class ATBController : IBattleController
     /// </summary>
     private void HandleInput()
     {
-        if (_inputBattler == null || !_readyQueue.Contains(_inputBattler))
+        // If waiting for input, don't process further
+        if (_waitingForInput)
         {
-            _inputBattler = _readyQueue.FirstOrDefault(b => b.IsActor);
-            ResetInputState();
-        }
-
-        if (_inputBattler != null)
-        {
-            var keyboard = Keyboard.GetState();
-            switch (_inputState)
+            // Check if actions are ready to execute
+            if (_state.ActionQueue.Count > 0 && !_battleMenu.IsActive)
             {
-                case BattleInputState.Command:
-                    HandleCommandInput(keyboard);
-                    break;
-                case BattleInputState.Skill:
-                    HandleSkillInput(keyboard);
-                    break;
-                case BattleInputState.Item:
-                    HandleItemInput(keyboard);
-                    break;
-                case BattleInputState.Target:
-                    HandleTargetInput(keyboard);
-                    break;
+                _state.Phase = BattlePhase.Execution;
             }
-
-            _previousKeyboard = keyboard;
+            return;
         }
 
+        // Find a ready actor who needs input
+        var readyActor = _readyQueue.FirstOrDefault(b => b.IsActor && b != _activeActor);
+        if (readyActor != null)
+        {
+            // Open battle menu for this actor
+            _activeActor = readyActor;
+            _waitingForInput = true;
+            _battleMenu.Open(readyActor, _state, OnActionSelected);
+            return;
+        }
+
+        // If no actors need input, check if we have actions to execute
         if (_state.ActionQueue.Count > 0)
         {
             _state.Phase = BattlePhase.Execution;
         }
+    }
+
+    /// <summary>
+    /// Callback when player selects an action from the menu.
+    /// </summary>
+    private void OnActionSelected(BattleAction? action)
+    {
+        _waitingForInput = false;
+
+        if (action == null)
+        {
+            // Player cancelled - allow reselection
+            _activeActor = null;
+            return;
+        }
+
+        // Handle escape action
+        if (action.Type == ActionType.Escape)
+        {
+            // Simple escape check - 50% base chance
+            if (Random.Shared.Next(100) < 50)
+            {
+                _state.Phase = BattlePhase.Escape;
+            }
+            else
+            {
+                // Escape failed, this actor loses their turn
+                if (_activeActor != null)
+                {
+                    _activeActor.ATBGauge = 0f;
+                    _readyQueue.Remove(_activeActor);
+                }
+            }
+            _activeActor = null;
+            return;
+        }
+
+        // Queue the action for execution
+        _state.ActionQueue.Enqueue(action);
+
+        // Remove actor from ready queue (will be removed after execution resets ATB)
+        if (_activeActor != null)
+        {
+            _readyQueue.Remove(_activeActor);
+        }
+        _activeActor = null;
+
+        _state.Phase = BattlePhase.Execution;
     }
 
     /// <summary>
@@ -228,33 +273,25 @@ public class ATBController : IBattleController
         }
     }
 
-    /// <summary>
-    /// Create auto-action for testing.
-    /// </summary>
-    private void CreateAutoAction(Battler battler)
-    {
-        var random = new Random();
-        var target = _state.Enemies.Where(b => b.IsAlive).OrderBy(_ => random.Next()).FirstOrDefault();
-
-        if (target != null)
-        {
-            var action = new BattleAction
-            {
-                User = battler,
-                Type = ActionType.Attack,
-                Targets = new List<Battler> { target }
-            };
-            _state.ActionQueue.Enqueue(action);
-        }
-    }
-
     private void ExecuteAttack(BattleAction action)
     {
         foreach (var target in action.Targets)
         {
             if (!target.IsAlive) continue;
+
+            // Check hit rate
+            if (!DamageFormulaEvaluator.CheckHit(95f, action.User.Stats.Agility, target.Stats.Agility))
+                continue; // Miss
+
             int damage = CalculateDamage(action.User, target);
-            ApplyDamage(target, damage);
+
+            // Check for critical hit
+            if (DamageFormulaEvaluator.IsCriticalHit(4f, action.User.Stats.Luck, target.Stats.Luck))
+            {
+                damage = DamageFormulaEvaluator.ApplyCritical(damage);
+            }
+
+            target.ApplyDamage(damage);
         }
     }
 
@@ -266,12 +303,42 @@ public class ATBController : IBattleController
 
         foreach (var target in action.Targets)
         {
-            if (!target.IsAlive) continue;
-            int damage = CalculateSkillDamage(action.User, target, action.Skill);
-            if (damage > 0)
-                ApplyDamage(target, damage);
-            else if (damage < 0)
-                ApplyHealing(target, -damage);
+            // Allow targeting dead allies for revival skills
+            if (!target.IsAlive && action.Skill.Scope != SkillScope.OneAllyDead && action.Skill.Scope != SkillScope.AllAlliesDead)
+                continue;
+
+            if (action.Skill.Damage.Type != DamageType.None)
+            {
+                int damage = CalculateSkillDamage(action.User, target, action.Skill);
+
+                switch (action.Skill.Damage.Type)
+                {
+                    case DamageType.HpDamage:
+                        target.ApplyDamage(damage);
+                        break;
+                    case DamageType.MpDamage:
+                        target.CurrentMp = Math.Max(0, target.CurrentMp - damage);
+                        break;
+                    case DamageType.HpRecover:
+                        target.ApplyHealing(damage);
+                        break;
+                    case DamageType.MpRecover:
+                        target.CurrentMp = Math.Min(target.MaxMp, target.CurrentMp + damage);
+                        break;
+                    case DamageType.HpDrain:
+                        int drained = target.ApplyDamage(damage);
+                        action.User.ApplyHealing(drained);
+                        break;
+                    case DamageType.MpDrain:
+                        int mpDrained = Math.Min(damage, target.CurrentMp);
+                        target.CurrentMp -= mpDrained;
+                        action.User.CurrentMp = Math.Min(action.User.MaxMp, action.User.CurrentMp + mpDrained);
+                        break;
+                }
+            }
+
+            // Apply skill effects
+            ApplySkillEffects(target, action.Skill);
         }
     }
 
@@ -279,35 +346,99 @@ public class ATBController : IBattleController
     {
         action.User.IsGuarding = true;
     }
+
     private void ExecuteItem(BattleAction action)
     {
-        BattleItemEffects.ApplyItem(_game, action);
+        if (action.Item == null) return;
+
+        foreach (var target in action.Targets)
+        {
+            if (!target.IsAlive && action.Item.Scope != SkillScope.OneAllyDead && action.Item.Scope != SkillScope.AllAlliesDead)
+                continue;
+
+            foreach (var effect in action.Item.Effects)
+            {
+                switch (effect.Code)
+                {
+                    case EffectCode.RecoverHp:
+                        int hpRecovery = (int)(target.MaxHp * effect.Value1 / 100) + (int)effect.Value2;
+                        target.ApplyHealing(hpRecovery);
+                        break;
+                    case EffectCode.RecoverMp:
+                        int mpRecovery = (int)(target.MaxMp * effect.Value1 / 100) + (int)effect.Value2;
+                        target.CurrentMp = Math.Min(target.MaxMp, target.CurrentMp + mpRecovery);
+                        break;
+                    case EffectCode.AddState:
+                        if (effect.DataId != null)
+                        {
+                            var state = _database.GetState(effect.DataId);
+                            if (state != null && !target.States.Any(s => s.Id == state.Id))
+                                target.States.Add(state);
+                        }
+                        break;
+                    case EffectCode.RemoveState:
+                        if (effect.DataId != null)
+                            target.States.RemoveAll(s => s.Id == effect.DataId);
+                        break;
+                }
+            }
+        }
     }
 
     private int CalculateDamage(Battler attacker, Battler defender)
     {
-        return BattleFormulaEvaluator.CalculateAttackDamage(_game, attacker, defender);
+        int baseDamage = DamageFormulaEvaluator.Evaluate(DefaultAttackFormula, attacker.Stats, defender.Stats);
+        return Math.Max(1, DamageFormulaEvaluator.ApplyVariance(baseDamage, 20));
     }
 
-    private int CalculateSkillDamage(Battler user, Battler target, Shared.Models.Database.Skill skill)
+    private int CalculateSkillDamage(Battler user, Battler target, Skill skill)
     {
-        return BattleFormulaEvaluator.CalculateSkillDamage(_game, user, target, skill);
+        var result = DamageFormulaEvaluator.CalculateFullDamage(
+            skill.Damage,
+            user.Stats,
+            target.Stats,
+            skill.HitRate,
+            skill.CriticalRate
+        );
+
+        return result.IsMiss ? 0 : result.Damage;
     }
 
-    private void ApplyDamage(Battler target, int damage)
+    private void ApplySkillEffects(Battler target, Skill skill)
     {
-        target.CurrentHp = Math.Max(0, target.CurrentHp - damage);
-    }
-
-    private void ApplyHealing(Battler target, int healing)
-    {
-        int maxHp = BattleFormulaEvaluator.GetMaxHp(_game, target);
-        target.CurrentHp = Math.Min(maxHp, target.CurrentHp + healing);
+        foreach (var effect in skill.Effects)
+        {
+            switch (effect.Code)
+            {
+                case EffectCode.AddState:
+                    if (effect.DataId != null && new Random().NextDouble() * 100 < effect.Value1)
+                    {
+                        var state = _database.GetState(effect.DataId);
+                        if (state != null && !target.States.Any(s => s.Id == state.Id))
+                            target.States.Add(state);
+                    }
+                    break;
+                case EffectCode.RemoveState:
+                    if (effect.DataId != null)
+                        target.States.RemoveAll(s => s.Id == effect.DataId);
+                    break;
+                case EffectCode.RecoverHp:
+                    target.ApplyHealing((int)(target.MaxHp * effect.Value1 / 100) + (int)effect.Value2);
+                    break;
+                case EffectCode.RecoverMp:
+                    target.CurrentMp = Math.Min(target.MaxMp, target.CurrentMp + (int)(target.MaxMp * effect.Value1 / 100) + (int)effect.Value2);
+                    break;
+            }
+        }
     }
 
     private float GetAgilityMultiplier(Battler battler)
     {
-        return BattleFormulaEvaluator.GetAgilityMultiplier(_game, battler);
+        // Higher agility = faster ATB gauge fill
+        // Base agility (10) fills in ~3 seconds at _atbSpeed = 1.0
+        // ATB gauge goes from 0 to 1, so we need fill rate per second
+        float agility = battler.Stats.Agility;
+        return (agility / BaseAgility) * 0.33f; // 0.33 = fills in ~3 seconds at base agility
     }
 
     private IEnumerable<Battler> GetAllBattlers()
