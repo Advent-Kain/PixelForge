@@ -5,6 +5,8 @@ using Avalonia.Media;
 using PixelForge.Editor.ViewModels;
 using PixelForge.Shared.Models;
 using System;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Linq;
 
 namespace PixelForge.Editor.Views.Controls;
@@ -18,14 +20,30 @@ public class MapEditorCanvas : Control
     private readonly IBrush _layerSeparatorBrush = new SolidColorBrush(Color.Parse("#2A2A2A"));
 
     private bool _isPointerDown;
+    private MapEditorViewModel? _viewModel;
 
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
-        if (DataContext is MapEditorViewModel viewModel)
+        if (_viewModel != null)
         {
-            viewModel.PropertyChanged += (_, _) => InvalidateVisual();
-            viewModel.Layers.CollectionChanged += (_, _) => InvalidateVisual();
+            _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            _viewModel.Layers.CollectionChanged -= OnLayersCollectionChanged;
+            foreach (var layer in _viewModel.Layers)
+            {
+                layer.VisibilityChanged -= OnLayerVisibilityChanged;
+            }
+        }
+
+        _viewModel = DataContext as MapEditorViewModel;
+        if (_viewModel != null)
+        {
+            _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            _viewModel.Layers.CollectionChanged += OnLayersCollectionChanged;
+            foreach (var layer in _viewModel.Layers)
+            {
+                layer.VisibilityChanged += OnLayerVisibilityChanged;
+            }
         }
     }
 
@@ -40,8 +58,8 @@ public class MapEditorCanvas : Control
         }
 
         var tileSize = GetTileSize(viewModel);
-        var mapWidth = viewModel.CurrentMap.Width * tileSize;
-        var mapHeight = viewModel.CurrentMap.Height * tileSize;
+        var mapWidth = viewModel.CurrentMap.Width * tileSize.Width;
+        var mapHeight = viewModel.CurrentMap.Height * tileSize.Height;
 
         context.FillRectangle(_emptyTileBrush, new Rect(0, 0, mapWidth, mapHeight));
 
@@ -66,7 +84,7 @@ public class MapEditorCanvas : Control
         if (DataContext is MapEditorViewModel viewModel && viewModel.CurrentMap != null)
         {
             var tileSize = GetTileSize(viewModel);
-            return new Size(viewModel.CurrentMap.Width * tileSize, viewModel.CurrentMap.Height * tileSize);
+            return new Size(viewModel.CurrentMap.Width * tileSize.Width, viewModel.CurrentMap.Height * tileSize.Height);
         }
 
         return new Size(960, 720);
@@ -102,8 +120,8 @@ public class MapEditorCanvas : Control
         }
 
         var tileSize = GetTileSize(viewModel);
-        var x = (int)(position.X / tileSize);
-        var y = (int)(position.Y / tileSize);
+        var x = (int)(position.X / tileSize.Width);
+        var y = (int)(position.Y / tileSize.Height);
 
         if (x < 0 || y < 0 || x >= viewModel.CurrentMap.Width || y >= viewModel.CurrentMap.Height)
         {
@@ -123,7 +141,7 @@ public class MapEditorCanvas : Control
         InvalidateVisual();
     }
 
-    private void DrawLayer(DrawingContext context, MapLayer layer, int width, int height, double tileSize)
+    private void DrawLayer(DrawingContext context, MapLayer layer, int width, int height, Size tileSize)
     {
         if (layer.Tiles.Length == 0)
         {
@@ -140,35 +158,69 @@ public class MapEditorCanvas : Control
                     continue;
                 }
 
-                var rect = new Rect(x * tileSize, y * tileSize, tileSize, tileSize);
+                var rect = new Rect(x * tileSize.Width, y * tileSize.Height, tileSize.Width, tileSize.Height);
                 context.FillRectangle(_tileBrush, rect);
                 context.DrawRectangle(new Pen(_layerSeparatorBrush, 1), rect);
             }
         }
     }
 
-    private void DrawGrid(DrawingContext context, int width, int height, double tileSize)
+    private void DrawGrid(DrawingContext context, int width, int height, Size tileSize)
     {
         var pen = new Pen(_gridBrush, 1);
 
         for (var x = 0; x <= width; x++)
         {
-            var xPos = x * tileSize;
-            context.DrawLine(pen, new Point(xPos, 0), new Point(xPos, height * tileSize));
+            var xPos = x * tileSize.Width;
+            context.DrawLine(pen, new Point(xPos, 0), new Point(xPos, height * tileSize.Height));
         }
 
         for (var y = 0; y <= height; y++)
         {
-            var yPos = y * tileSize;
-            context.DrawLine(pen, new Point(0, yPos), new Point(width * tileSize, yPos));
+            var yPos = y * tileSize.Height;
+            context.DrawLine(pen, new Point(0, yPos), new Point(width * tileSize.Width, yPos));
         }
     }
 
-    private double GetTileSize(MapEditorViewModel viewModel)
+    private Size GetTileSize(MapEditorViewModel viewModel)
     {
         var tileset = viewModel.SelectedTileset;
-        var baseSize = tileset?.TileWidth ?? DefaultTileSize;
-        return Math.Max(4, baseSize * viewModel.ZoomLevel);
+        var baseWidth = tileset?.TileWidth ?? DefaultTileSize;
+        var baseHeight = tileset?.TileHeight ?? DefaultTileSize;
+        return new Size(
+            Math.Max(4, baseWidth * viewModel.ZoomLevel),
+            Math.Max(4, baseHeight * viewModel.ZoomLevel));
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        InvalidateVisual();
+    }
+
+    private void OnLayersCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems != null)
+        {
+            foreach (MapLayer layer in e.OldItems)
+            {
+                layer.VisibilityChanged -= OnLayerVisibilityChanged;
+            }
+        }
+
+        if (e.NewItems != null)
+        {
+            foreach (MapLayer layer in e.NewItems)
+            {
+                layer.VisibilityChanged += OnLayerVisibilityChanged;
+            }
+        }
+
+        InvalidateVisual();
+    }
+
+    private void OnLayerVisibilityChanged(object? sender, EventArgs e)
+    {
+        InvalidateVisual();
     }
 
     private void DrawPlaceholder(DrawingContext context)
