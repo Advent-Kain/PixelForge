@@ -256,11 +256,11 @@ public class GameEngine : Game, IGameContext
 
     private void LoadDatabase()
     {
-        var projectFile = LoadProjectFile();
-        var databaseDirectory = Path.Combine(
-            AppContext.BaseDirectory,
-            projectFile?.DatabasePath ?? "Database"
-        );
+        var projectFile = LoadProjectFile(out var projectFilePath);
+        var baseDirectory = projectFilePath != null
+            ? Path.GetDirectoryName(projectFilePath) ?? Directory.GetCurrentDirectory()
+            : Directory.GetCurrentDirectory();
+        var databaseDirectory = Path.Combine(baseDirectory, projectFile?.DatabasePath ?? "Database");
 
         if (!Directory.Exists(databaseDirectory))
         {
@@ -335,7 +335,7 @@ public class GameEngine : Game, IGameContext
 
     private void ApplySystemConfig()
     {
-        var projectFile = LoadProjectFile();
+        var projectFile = LoadProjectFile(out _);
         if (projectFile?.GameSettings == null)
             return;
 
@@ -361,12 +361,19 @@ public class GameEngine : Game, IGameContext
 
     private ProjectFile? LoadProjectFile()
     {
+        return LoadProjectFile(out _);
+    }
+
+    private ProjectFile? LoadProjectFile(out string? projectFilePath)
+    {
+        projectFilePath = ResolveProjectFilePath();
+        if (projectFilePath == null)
+        {
+            return null;
+        }
+
         try
         {
-            var projectFilePath = Path.Combine(AppContext.BaseDirectory, "project.json");
-            if (!File.Exists(projectFilePath))
-                return null;
-
             var json = File.ReadAllText(projectFilePath);
             return JsonSerializer.Deserialize<ProjectFile>(json, JsonOptions);
         }
@@ -374,5 +381,23 @@ public class GameEngine : Game, IGameContext
         {
             return null;
         }
+    }
+
+    private static string? ResolveProjectFilePath()
+    {
+        var workingDirectory = Directory.GetCurrentDirectory();
+        var workingProjectFilePath = Path.Combine(workingDirectory, "project.json");
+        if (File.Exists(workingProjectFilePath))
+        {
+            return workingProjectFilePath;
+        }
+
+        var appProjectFilePath = Path.Combine(AppContext.BaseDirectory, "project.json");
+        if (File.Exists(appProjectFilePath))
+        {
+            return appProjectFilePath;
+        }
+
+        return null;
     }
 }
