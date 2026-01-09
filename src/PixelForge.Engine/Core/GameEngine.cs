@@ -3,12 +3,14 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using PixelForge.Engine.Battle;
+using PixelForge.Engine.Events;
 using PixelForge.Engine.Graphics;
 using PixelForge.Engine.Map;
 using PixelForge.Engine.RPG;
 using PixelForge.Engine.UI;
 using PixelForge.Engine.UI.Battle;
 using PixelForge.Shared.Models;
+using PixelForge.Shared.Models.Database;
 
 namespace PixelForge.Engine.Core;
 
@@ -36,6 +38,7 @@ public class GameEngine : Game, IGameContext
     private readonly BattleSystem _battleSystem;
     private readonly BattleMenuManager _battleMenuManager;
     private readonly MenuManager _menuManager;
+    private readonly EventProcessor _commonEventProcessor;
 
     public GameEngine()
     {
@@ -54,6 +57,7 @@ public class GameEngine : Game, IGameContext
         _battleSystem = new BattleSystem(this);
         _battleMenuManager = new BattleMenuManager(this);
         _menuManager = new MenuManager(this);
+        _commonEventProcessor = new EventProcessor(this);
 
         // Default window size
         _graphics.PreferredBackBufferWidth = 1280;
@@ -142,7 +146,7 @@ public class GameEngine : Game, IGameContext
             _menuManager.Update(gameTime);
         }
 
-        TryRunCommonEvents();
+        TryRunCommonEvents(gameTime);
 
         base.Update(gameTime);
     }
@@ -257,6 +261,34 @@ public class GameEngine : Game, IGameContext
     private void LoadDatabase()
     {
         // Placeholder for database load logic when runtime content loading is implemented.
+    }
+
+    private void TryRunCommonEvents(GameTime gameTime)
+    {
+        if (_commonEventProcessor.IsBusy)
+        {
+            _commonEventProcessor.Update(gameTime);
+            return;
+        }
+
+        foreach (var commonEvent in _database.CommonEvents.Values)
+        {
+            if (commonEvent.Trigger != CommonEventTrigger.Autorun
+                && commonEvent.Trigger != CommonEventTrigger.Parallel)
+            {
+                continue;
+            }
+
+            if (commonEvent.SwitchId.HasValue
+                && !_gameState.GetSwitch(commonEvent.SwitchId.Value))
+            {
+                continue;
+            }
+
+            _commonEventProcessor.ExecuteCommonEvent(commonEvent.Id);
+            _commonEventProcessor.Update(gameTime);
+            break;
+        }
     }
 
     private void ApplySystemConfig()
