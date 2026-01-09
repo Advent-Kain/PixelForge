@@ -1,9 +1,12 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using PixelForge.Engine.Battle;
 using PixelForge.Engine.Graphics;
 using PixelForge.Engine.Map;
 using PixelForge.Engine.RPG;
+using PixelForge.Engine.UI;
+using PixelForge.Engine.UI.Battle;
 
 namespace PixelForge.Engine.Core;
 
@@ -14,6 +17,8 @@ public class GameEngine : Game
 {
     private readonly GraphicsDeviceManager _graphics;
     private SpriteBatch? _spriteBatch;
+    private SpriteFont? _font;
+    private Texture2D? _pixelTexture;
     private readonly GameState _gameState;
     private readonly InputManager _inputManager;
     private readonly MapManager _mapManager;
@@ -21,6 +26,9 @@ public class GameEngine : Game
     private readonly PartyManager _partyManager;
     private readonly InventoryManager _inventoryManager;
     private readonly GameDatabase _database;
+    private readonly BattleSystem _battleSystem;
+    private readonly BattleMenuManager _battleMenuManager;
+    private readonly MenuManager _menuManager;
 
     public GameEngine()
     {
@@ -35,6 +43,9 @@ public class GameEngine : Game
         _partyManager = new PartyManager();
         _inventoryManager = new InventoryManager();
         _database = new GameDatabase();
+        _battleSystem = new BattleSystem(this);
+        _battleMenuManager = new BattleMenuManager(this);
+        _menuManager = new MenuManager(this);
 
         // Default window size
         _graphics.PreferredBackBufferWidth = 1280;
@@ -62,8 +73,22 @@ public class GameEngine : Game
     {
         _spriteBatch = new SpriteBatch(GraphicsDevice);
 
+        // Create a 1x1 pixel texture for UI rendering
+        _pixelTexture = new Texture2D(GraphicsDevice, 1, 1);
+        _pixelTexture.SetData(new[] { Color.White });
+
         // Load default resources
         _resourceManager.Initialize(GraphicsDevice);
+
+        // Try to load font from content, or use a placeholder
+        try
+        {
+            _font = Content.Load<SpriteFont>("Fonts/Default");
+        }
+        catch
+        {
+            // Font not found - will be null and UI won't render text
+        }
     }
 
     /// <summary>
@@ -74,17 +99,35 @@ public class GameEngine : Game
         // Update input
         _inputManager.Update();
 
-        // Exit on Escape key
-        if (_inputManager.IsKeyPressed(Keys.Escape))
-            Exit();
-
         // Update game state
         _gameState.Update(gameTime);
 
-        // Update active map
-        if (_mapManager.CurrentMap != null)
+        // Handle battle updates
+        if (_battleSystem.IsActive)
         {
-            _mapManager.Update(gameTime, _inputManager);
+            // Update battle menu if active
+            if (_battleMenuManager.IsActive)
+            {
+                _battleMenuManager.Update(gameTime);
+            }
+
+            _battleSystem.Update(gameTime);
+        }
+        // Handle menu updates
+        else if (_menuManager.IsOpen)
+        {
+            _menuManager.Update(gameTime);
+        }
+        // Update active map when not in battle or menu
+        else
+        {
+            if (_mapManager.CurrentMap != null)
+            {
+                _mapManager.Update(gameTime, _inputManager);
+            }
+
+            // Check for menu open (not during battle)
+            _menuManager.Update(gameTime);
         }
 
         base.Update(gameTime);
@@ -97,22 +140,41 @@ public class GameEngine : Game
     {
         GraphicsDevice.Clear(Color.Black);
 
-        if (_spriteBatch != null && _mapManager.CurrentMap != null)
+        if (_spriteBatch == null)
         {
-            _spriteBatch.Begin(
-                SpriteSortMode.Deferred,
-                BlendState.AlphaBlend,
-                SamplerState.PointClamp,
-                null,
-                null,
-                null,
-                null
-            );
-
-            _mapManager.Draw(_spriteBatch, gameTime);
-
-            _spriteBatch.End();
+            base.Draw(gameTime);
+            return;
         }
+
+        _spriteBatch.Begin(
+            SpriteSortMode.Deferred,
+            BlendState.AlphaBlend,
+            SamplerState.PointClamp,
+            null,
+            null,
+            null,
+            null
+        );
+
+        // Draw map (even during battle as background)
+        if (_mapManager.CurrentMap != null)
+        {
+            _mapManager.Draw(_spriteBatch, gameTime);
+        }
+
+        // Draw battle UI
+        if (_battleSystem.IsActive && _font != null && _pixelTexture != null)
+        {
+            _battleMenuManager.Draw(_spriteBatch, _font, _pixelTexture);
+        }
+
+        // Draw menu UI
+        if (_menuManager.IsOpen && _font != null && _pixelTexture != null)
+        {
+            _menuManager.Draw(_spriteBatch, _font, _pixelTexture);
+        }
+
+        _spriteBatch.End();
 
         base.Draw(gameTime);
     }
@@ -155,4 +217,19 @@ public class GameEngine : Game
     /// Get the game database.
     /// </summary>
     public GameDatabase GetDatabase() => _database;
+
+    /// <summary>
+    /// Get the battle system.
+    /// </summary>
+    public BattleSystem GetBattleSystem() => _battleSystem;
+
+    /// <summary>
+    /// Get the battle menu manager.
+    /// </summary>
+    public BattleMenuManager GetBattleMenuManager() => _battleMenuManager;
+
+    /// <summary>
+    /// Get the menu manager.
+    /// </summary>
+    public MenuManager GetMenuManager() => _menuManager;
 }

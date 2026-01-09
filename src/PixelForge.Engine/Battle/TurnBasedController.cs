@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using PixelForge.Engine.Core;
+using PixelForge.Engine.UI.Battle;
 using PixelForge.Shared.Models.Database;
 
 namespace PixelForge.Engine.Battle;
@@ -12,9 +13,11 @@ public class TurnBasedController : IBattleController
     private readonly GameEngine _game;
     private readonly BattleState _state;
     private readonly RPG.GameDatabase _database;
+    private readonly BattleMenuManager _battleMenu;
     private List<Battler> _turnOrder = new();
     private int _currentBattlerIndex;
     private Battler? _currentBattler;
+    private bool _waitingForInput;
 
     // Default attack formula when no weapon is equipped
     private const string DefaultAttackFormula = "a.atk * 4 - b.def * 2";
@@ -24,6 +27,7 @@ public class TurnBasedController : IBattleController
         _game = game;
         _state = state;
         _database = game.GetDatabase();
+        _battleMenu = game.GetBattleMenuManager();
     }
 
     public void Initialize()
@@ -110,8 +114,46 @@ public class TurnBasedController : IBattleController
         if (_currentBattler == null || !_currentBattler.IsActor)
             return;
 
-        // TODO: Show battle menu and handle input
-        // For now, auto-advance
+        // If we're already waiting for input, don't open menu again
+        if (_waitingForInput)
+            return;
+
+        // Open battle menu for player input
+        _waitingForInput = true;
+        _battleMenu.Open(_currentBattler, _state, OnActionSelected);
+    }
+
+    /// <summary>
+    /// Callback when player selects an action from the menu.
+    /// </summary>
+    private void OnActionSelected(BattleAction? action)
+    {
+        _waitingForInput = false;
+
+        if (action == null)
+        {
+            // Player cancelled or tried to escape
+            return;
+        }
+
+        // Handle escape action
+        if (action.Type == ActionType.Escape)
+        {
+            // Simple escape check - 50% base chance
+            if (Random.Shared.Next(100) < 50)
+            {
+                _state.Phase = BattlePhase.Escape;
+            }
+            else
+            {
+                // Escape failed, end turn
+                _state.Phase = BattlePhase.TurnEnd;
+            }
+            return;
+        }
+
+        // Queue the action for execution
+        _state.ActionQueue.Enqueue(action);
         _state.Phase = BattlePhase.Execution;
     }
 

@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using PixelForge.Engine.Core;
+using PixelForge.Engine.UI.Battle;
 using PixelForge.Shared.Models.Database;
 
 namespace PixelForge.Engine.Battle;
@@ -12,8 +13,11 @@ public class ATBController : IBattleController
     private readonly GameEngine _game;
     private readonly BattleState _state;
     private readonly RPG.GameDatabase _database;
+    private readonly BattleMenuManager _battleMenu;
     private readonly float _atbSpeed = 1.0f;
     private readonly List<Battler> _readyQueue = new();
+    private Battler? _activeActor; // Currently selecting action
+    private bool _waitingForInput;
 
     // Default attack formula
     private const string DefaultAttackFormula = "a.atk * 4 - b.def * 2";
@@ -26,6 +30,7 @@ public class ATBController : IBattleController
         _game = game;
         _state = state;
         _database = game.GetDatabase();
+        _battleMenu = game.GetBattleMenuManager();
     }
 
     public void Initialize()
@@ -120,18 +125,81 @@ public class ATBController : IBattleController
     /// </summary>
     private void HandleInput()
     {
-        var readyActor = _readyQueue.FirstOrDefault(b => b.IsActor);
-        if (readyActor != null)
+        // If waiting for input, don't process further
+        if (_waitingForInput)
         {
-            // TODO: Show battle menu for this actor
-            // For now, auto-create an attack action
-            CreateAutoAction(readyActor);
+            // Check if actions are ready to execute
+            if (_state.ActionQueue.Count > 0 && !_battleMenu.IsActive)
+            {
+                _state.Phase = BattlePhase.Execution;
+            }
+            return;
         }
 
+        // Find a ready actor who needs input
+        var readyActor = _readyQueue.FirstOrDefault(b => b.IsActor && b != _activeActor);
+        if (readyActor != null)
+        {
+            // Open battle menu for this actor
+            _activeActor = readyActor;
+            _waitingForInput = true;
+            _battleMenu.Open(readyActor, _state, OnActionSelected);
+            return;
+        }
+
+        // If no actors need input, check if we have actions to execute
         if (_state.ActionQueue.Count > 0)
         {
             _state.Phase = BattlePhase.Execution;
         }
+    }
+
+    /// <summary>
+    /// Callback when player selects an action from the menu.
+    /// </summary>
+    private void OnActionSelected(BattleAction? action)
+    {
+        _waitingForInput = false;
+
+        if (action == null)
+        {
+            // Player cancelled - allow reselection
+            _activeActor = null;
+            return;
+        }
+
+        // Handle escape action
+        if (action.Type == ActionType.Escape)
+        {
+            // Simple escape check - 50% base chance
+            if (Random.Shared.Next(100) < 50)
+            {
+                _state.Phase = BattlePhase.Escape;
+            }
+            else
+            {
+                // Escape failed, this actor loses their turn
+                if (_activeActor != null)
+                {
+                    _activeActor.ATBGauge = 0f;
+                    _readyQueue.Remove(_activeActor);
+                }
+            }
+            _activeActor = null;
+            return;
+        }
+
+        // Queue the action for execution
+        _state.ActionQueue.Enqueue(action);
+
+        // Remove actor from ready queue (will be removed after execution resets ATB)
+        if (_activeActor != null)
+        {
+            _readyQueue.Remove(_activeActor);
+        }
+        _activeActor = null;
+
+        _state.Phase = BattlePhase.Execution;
     }
 
     /// <summary>
@@ -191,26 +259,6 @@ public class ATBController : IBattleController
             var action = new BattleAction
             {
                 User = enemy,
-                Type = ActionType.Attack,
-                Targets = new List<Battler> { target }
-            };
-            _state.ActionQueue.Enqueue(action);
-        }
-    }
-
-    /// <summary>
-    /// Create auto-action for testing.
-    /// </summary>
-    private void CreateAutoAction(Battler battler)
-    {
-        var random = new Random();
-        var target = _state.Enemies.Where(b => b.IsAlive).OrderBy(_ => random.Next()).FirstOrDefault();
-
-        if (target != null)
-        {
-            var action = new BattleAction
-            {
-                User = battler,
                 Type = ActionType.Attack,
                 Targets = new List<Battler> { target }
             };
