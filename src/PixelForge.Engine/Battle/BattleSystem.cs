@@ -46,7 +46,8 @@ public class BattleSystem
                 CurrentHp = partyActor != null ? Math.Clamp(partyActor.CurrentHp, 0, actorStats.MaxHp) : actorStats.MaxHp,
                 CurrentMp = partyActor != null ? Math.Clamp(partyActor.CurrentMp, 0, actorStats.MaxMp) : actorStats.MaxMp,
                 CurrentTp = partyActor?.CurrentTp ?? 0,
-                LearnedSkills = partyActor?.LearnedSkills ?? new List<string>()
+                // Include both learned skills AND equipment-granted skills
+                LearnedSkills = partyActor?.GetAllAvailableSkills().ToList() ?? new List<string>()
             };
             _state.Party.Add(battler);
         }

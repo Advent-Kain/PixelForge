@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Linq;
 using PixelForge.Engine.Core;
+using PixelForge.Shared.Models.Database;
 
 namespace PixelForge.Engine.RPG;
 
@@ -180,7 +181,7 @@ public class SaveManager
                     CurrentHp = actor.CurrentHp,
                     CurrentMp = actor.CurrentMp,
                     CurrentTp = actor.CurrentTp,
-                    Equipment = new Dictionary<string, string?>(actor.EquippedItems),
+                    Equipment = EquipSlotDictionaryToString(actor.EquippedItems),
                     LearnedSkills = new List<string>(actor.LearnedSkills),
                     States = actor.States
                         .Select(state => new SavedState
@@ -272,7 +273,7 @@ public class SaveManager
             actor.CurrentHp = member.CurrentHp;
             actor.CurrentMp = member.CurrentMp;
             actor.CurrentTp = member.CurrentTp;
-            actor.EquippedItems = new Dictionary<string, string?>(member.Equipment);
+            actor.EquippedItems = StringDictionaryToEquipSlot(member.Equipment);
             actor.LearnedSkills = new List<string>(member.LearnedSkills);
             actor.States = member.States
                 .Select(state => new ActiveState
@@ -329,6 +330,44 @@ public class SaveManager
     private string GetSaveFilePath(int slot)
     {
         return Path.Combine(_savePath, $"save{slot:D2}.json");
+    }
+
+    /// <summary>
+    /// Convert EquipSlot dictionary to string dictionary for serialization.
+    /// </summary>
+    private static Dictionary<string, string?> EquipSlotDictionaryToString(Dictionary<EquipSlot, string?> equipment)
+    {
+        return equipment.ToDictionary(
+            kvp => kvp.Key.ToString().ToLowerInvariant(),
+            kvp => kvp.Value
+        );
+    }
+
+    /// <summary>
+    /// Convert string dictionary to EquipSlot dictionary after deserialization.
+    /// </summary>
+    private static Dictionary<EquipSlot, string?> StringDictionaryToEquipSlot(Dictionary<string, string?> equipment)
+    {
+        var result = new Dictionary<EquipSlot, string?>
+        {
+            { EquipSlot.Weapon, null },
+            { EquipSlot.Head, null },
+            { EquipSlot.Body, null },
+            { EquipSlot.Legs, null },
+            { EquipSlot.Accessory1, null },
+            { EquipSlot.Accessory2, null }
+        };
+
+        foreach (var kvp in equipment)
+        {
+            if (Enum.TryParse<EquipSlot>(kvp.Key, ignoreCase: true, out var slot))
+            {
+                result[slot] = kvp.Value;
+            }
+            // Handle legacy "shield" slot by ignoring it (no longer used)
+        }
+
+        return result;
     }
 }
 
