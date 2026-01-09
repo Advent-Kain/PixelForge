@@ -13,14 +13,25 @@ public class ActionEconomyController : IBattleController
 {
     private readonly GameEngine _game;
     private readonly BattleState _state;
+    private readonly RPG.GameDatabase _database;
     private Battler? _activeBattler;
     private ComboSequence? _currentCombo;
     private readonly int _maxApPerTurn = 7;
+
+    // Combo skill mappings by input type and level
+    private Dictionary<string, Dictionary<ComboInput, List<string>>> _comboSkillMappings = new();
+
+    // Default attack formula
+    private const string DefaultAttackFormula = "a.atk * 4 - b.def * 2";
+
+    // Keyboard state tracking for combo input
+    private KeyboardState _previousKeyboardState;
 
     public ActionEconomyController(GameEngine game, BattleState state)
     {
         _game = game;
         _state = state;
+        _database = game.GetDatabase();
     }
 
     public void Initialize()
@@ -172,18 +183,38 @@ public class ActionEconomyController : IBattleController
 
         foreach (var target in action.Targets)
         {
-            if (!target.IsAlive)
+            // Allow targeting dead allies for revival
+            if (!target.IsAlive && action.Skill.Scope != SkillScope.OneAllyDead && action.Skill.Scope != SkillScope.AllAlliesDead)
                 continue;
 
-            int damage = CalculateSkillDamage(action.User, target, action.Skill);
+            if (action.Skill.Damage.Type != DamageType.None)
+            {
+                int damage = CalculateSkillDamage(action.User, target, action.Skill);
 
-            if (damage > 0)
-            {
-                ApplyDamage(target, damage);
-            }
-            else if (damage < 0)
-            {
-                ApplyHealing(target, -damage);
+                switch (action.Skill.Damage.Type)
+                {
+                    case DamageType.HpDamage:
+                        target.ApplyDamage(damage);
+                        break;
+                    case DamageType.MpDamage:
+                        target.CurrentMp = Math.Max(0, target.CurrentMp - damage);
+                        break;
+                    case DamageType.HpRecover:
+                        target.ApplyHealing(damage);
+                        break;
+                    case DamageType.MpRecover:
+                        target.CurrentMp = Math.Min(target.MaxMp, target.CurrentMp + damage);
+                        break;
+                    case DamageType.HpDrain:
+                        int drained = target.ApplyDamage(damage);
+                        action.User.ApplyHealing(drained);
+                        break;
+                    case DamageType.MpDrain:
+                        int mpDrained = Math.Min(damage, target.CurrentMp);
+                        target.CurrentMp -= mpDrained;
+                        action.User.CurrentMp = Math.Min(action.User.MaxMp, action.User.CurrentMp + mpDrained);
+                        break;
+                }
             }
 
             // Apply effects
@@ -192,17 +223,23 @@ public class ActionEconomyController : IBattleController
     }
 
     /// <summary>
-    /// Apply combo bonus damage.
+    /// Apply combo bonus damage based on combo level.
     /// </summary>
     private void ApplyComboBonus(BattleAction action, int comboLevel)
     {
-        // Combo multiplier: 1.1x per combo level
-        float multiplier = 1.0f + (comboLevel * 0.1f);
+        // Combo multiplier: 10% bonus per hit in combo
+        // Uses attacker's stats for scaling
+        float comboMultiplier = 0.1f * comboLevel;
+        int baseBonus = (int)(action.User.Stats.Attack * comboMultiplier);
 
         foreach (var target in action.Targets)
         {
-            int bonus = (int)(20 * multiplier);
-            ApplyDamage(target, bonus);
+            if (!target.IsAlive) continue;
+
+            // Apply defense reduction to bonus
+            int bonus = Math.Max(1, baseBonus - (target.Stats.Defense / 4));
+            bonus = DamageFormulaEvaluator.ApplyVariance(bonus, 10);
+            target.ApplyDamage(bonus);
         }
     }
 
@@ -219,15 +256,46 @@ public class ActionEconomyController : IBattleController
     }
 
     /// <summary>
-    /// Execute a finisher attack.
+    /// Execute a finisher attack (Deathblow).
     /// </summary>
     private void ExecuteFinisher(ComboSequence combo, List<Battler> targets)
     {
-        // Finishers do massive damage
+        // Finisher damage scales with:
+        // - Base attack stat
+        // - Combo level (number of hits)
+        // - Target's remaining HP percentage (more damage to weakened enemies)
+        var user = combo.User;
+
         foreach (var target in targets)
         {
-            int finisherDamage = 100 + (combo.ComboLevel * 50);
-            ApplyDamage(target, finisherDamage);
+            if (!target.IsAlive) continue;
+
+            // Base finisher damage
+            int baseDamage = (int)(user.Stats.Attack * 2.5f);
+
+            // Combo scaling: +25% per combo hit
+            float comboMultiplier = 1.0f + (combo.ComboLevel * 0.25f);
+            baseDamage = (int)(baseDamage * comboMultiplier);
+
+            // Execution bonus: more damage to low-HP targets (up to +50%)
+            float hpPercent = (float)target.CurrentHp / target.MaxHp;
+            float executionBonus = 1.0f + (0.5f * (1.0f - hpPercent));
+            baseDamage = (int)(baseDamage * executionBonus);
+
+            // Defense reduction
+            int defense = target.Stats.Defense;
+            int finalDamage = Math.Max(baseDamage / 2, baseDamage - defense);
+
+            // Apply variance and critical chance
+            finalDamage = DamageFormulaEvaluator.ApplyVariance(finalDamage, 15);
+
+            // High critical rate for finishers
+            if (DamageFormulaEvaluator.IsCriticalHit(30f, user.Stats.Luck, target.Stats.Luck))
+            {
+                finalDamage = DamageFormulaEvaluator.ApplyCritical(finalDamage, 2.5f);
+            }
+
+            target.ApplyDamage(finalDamage);
         }
     }
 
@@ -263,8 +331,20 @@ public class ActionEconomyController : IBattleController
         foreach (var target in action.Targets)
         {
             if (!target.IsAlive) continue;
+
+            // Check hit rate
+            if (!DamageFormulaEvaluator.CheckHit(95f, action.User.Stats.Agility, target.Stats.Agility))
+                continue; // Miss
+
             int damage = CalculateDamage(action.User, target);
-            ApplyDamage(target, damage);
+
+            // Check for critical hit
+            if (DamageFormulaEvaluator.IsCriticalHit(4f, action.User.Stats.Luck, target.Stats.Luck))
+            {
+                damage = DamageFormulaEvaluator.ApplyCritical(damage);
+            }
+
+            target.ApplyDamage(damage);
         }
     }
 
@@ -279,14 +359,149 @@ public class ActionEconomyController : IBattleController
 
     private ComboInput? GetComboInput()
     {
-        // TODO: Get from battle UI
-        return null;
+        var currentState = Keyboard.GetState();
+
+        // Check for new key presses (not held from previous frame)
+        ComboInput? result = null;
+
+        // Xenogears-style input mapping:
+        // Triangle (Weak) = W or Up Arrow - Light attack, costs 1 AP
+        // Square (Strong) = A or Left Arrow - Medium attack, costs 2 AP
+        // X (Special) = S or Down Arrow - Heavy attack, costs 3 AP
+        // Circle (Deathblow) = D or Right Arrow - Finisher, costs all remaining AP
+
+        if (IsKeyPressed(currentState, Keys.W) || IsKeyPressed(currentState, Keys.Up))
+        {
+            result = ComboInput.Weak;
+        }
+        else if (IsKeyPressed(currentState, Keys.A) || IsKeyPressed(currentState, Keys.Left))
+        {
+            result = ComboInput.Strong;
+        }
+        else if (IsKeyPressed(currentState, Keys.S) || IsKeyPressed(currentState, Keys.Down))
+        {
+            result = ComboInput.Special;
+        }
+        else if (IsKeyPressed(currentState, Keys.D) || IsKeyPressed(currentState, Keys.Right))
+        {
+            result = ComboInput.Deathblow;
+        }
+        else if (IsKeyPressed(currentState, Keys.Enter) || IsKeyPressed(currentState, Keys.Space))
+        {
+            // Confirm current combo and execute
+            if (_currentCombo != null && _currentCombo.Skills.Count > 0)
+            {
+                _state.Phase = BattlePhase.Execution;
+            }
+        }
+
+        _previousKeyboardState = currentState;
+        return result;
+    }
+
+    private bool IsKeyPressed(KeyboardState current, Keys key)
+    {
+        return current.IsKeyDown(key) && !_previousKeyboardState.IsKeyDown(key);
     }
 
     private Skill? GetSkillForInput(ComboInput input)
     {
-        // TODO: Look up skill based on input and current combo state
-        return null;
+        if (_activeBattler == null)
+            return null;
+
+        // Get base AP cost for this input type
+        int apCost = input switch
+        {
+            ComboInput.Weak => 1,
+            ComboInput.Strong => 2,
+            ComboInput.Special => 3,
+            ComboInput.Deathblow => _activeBattler.CurrentAp, // Uses all remaining AP
+            _ => 1
+        };
+
+        // Check if we have enough AP
+        if (_activeBattler.CurrentAp < apCost)
+            return null;
+
+        // Look for a skill that matches this input and current combo level
+        var actorId = _activeBattler.ActorId ?? "";
+        int comboLevel = _currentCombo?.ComboLevel ?? 0;
+
+        // First, try to find a learned skill with matching combo properties
+        foreach (var skillId in _activeBattler.LearnedSkills)
+        {
+            var skill = _database.GetSkill(skillId);
+            if (skill?.ComboProperties != null)
+            {
+                if (skill.ComboProperties.ComboInput == input &&
+                    skill.ComboProperties.RequiredCombo <= comboLevel &&
+                    skill.ApCost <= _activeBattler.CurrentAp)
+                {
+                    // Check if this is a finisher and we meet requirements
+                    if (skill.ComboProperties.Finisher && comboLevel < 3)
+                        continue; // Need at least 3 hits for finisher
+
+                    return skill;
+                }
+            }
+        }
+
+        // If no specific skill found, create a basic combo attack
+        return CreateBasicComboSkill(input, apCost, comboLevel);
+    }
+
+    /// <summary>
+    /// Create a basic combo skill for the given input type.
+    /// </summary>
+    private Skill CreateBasicComboSkill(ComboInput input, int apCost, int comboLevel)
+    {
+        // Base damage multiplier based on input type
+        float multiplier = input switch
+        {
+            ComboInput.Weak => 1.0f,
+            ComboInput.Strong => 1.5f,
+            ComboInput.Special => 2.0f,
+            ComboInput.Deathblow => 3.0f + (comboLevel * 0.5f), // Scales with combo
+            _ => 1.0f
+        };
+
+        string name = input switch
+        {
+            ComboInput.Weak => "Light Attack",
+            ComboInput.Strong => "Medium Attack",
+            ComboInput.Special => "Heavy Attack",
+            ComboInput.Deathblow => "Deathblow",
+            _ => "Attack"
+        };
+
+        return new Skill
+        {
+            Id = $"combo_{input}_{comboLevel}",
+            Name = name,
+            SkillType = SkillType.Physical,
+            Scope = SkillScope.OneEnemy,
+            ApCost = apCost,
+            MpCost = 0,
+            TpCost = 0,
+            HitRate = 95f,
+            CriticalRate = input == ComboInput.Deathblow ? 25f : 5f,
+            Variance = 10,
+            Damage = new DamageFormula
+            {
+                Type = DamageType.HpDamage,
+                Formula = $"(a.atk * {multiplier:F1} * 4) - (b.def * 2)",
+                Critical = true,
+                Variance = 10
+            },
+            ComboProperties = new ComboProperties
+            {
+                ComboInput = input,
+                ComboLevel = comboLevel + 1,
+                Chainable = input != ComboInput.Deathblow,
+                Finisher = input == ComboInput.Deathblow,
+                RequiredCombo = input == ComboInput.Deathblow ? 3 : 0
+            }
+        };
     }
 
     private bool CanUseSkill(Skill skill)
@@ -301,37 +516,89 @@ public class ActionEconomyController : IBattleController
 
     private List<Battler> SelectTargets(Skill skill)
     {
-        // TODO: Smart target selection based on scope
-        return _state.Enemies.Where(e => e.IsAlive).Take(1).ToList();
+        var random = new Random();
+        var targets = new List<Battler>();
+
+        var allies = _activeBattler?.IsActor == true ? _state.Party : _state.Enemies;
+        var enemies = _activeBattler?.IsActor == true ? _state.Enemies : _state.Party;
+
+        switch (skill.Scope)
+        {
+            case SkillScope.OneEnemy:
+                var enemy = enemies.Where(b => b.IsAlive).OrderBy(_ => random.Next()).FirstOrDefault();
+                if (enemy != null) targets.Add(enemy);
+                break;
+            case SkillScope.AllEnemies:
+                targets.AddRange(enemies.Where(b => b.IsAlive));
+                break;
+            case SkillScope.OneAlly:
+                var ally = allies.Where(b => b.IsAlive).OrderBy(_ => random.Next()).FirstOrDefault();
+                if (ally != null) targets.Add(ally);
+                break;
+            case SkillScope.AllAllies:
+                targets.AddRange(allies.Where(b => b.IsAlive));
+                break;
+            case SkillScope.User:
+                if (_activeBattler != null) targets.Add(_activeBattler);
+                break;
+            default:
+                // Default to first alive enemy
+                var defaultTarget = enemies.FirstOrDefault(b => b.IsAlive);
+                if (defaultTarget != null) targets.Add(defaultTarget);
+                break;
+        }
+
+        return targets;
     }
 
     private void ApplySkillEffects(Battler target, Skill skill)
     {
-        // TODO: Apply status effects, buffs, etc.
+        foreach (var effect in skill.Effects)
+        {
+            switch (effect.Code)
+            {
+                case EffectCode.AddState:
+                    if (effect.DataId != null && new Random().NextDouble() * 100 < effect.Value1)
+                    {
+                        var state = _database.GetState(effect.DataId);
+                        if (state != null && !target.States.Any(s => s.Id == state.Id))
+                            target.States.Add(state);
+                    }
+                    break;
+                case EffectCode.RemoveState:
+                    if (effect.DataId != null)
+                        target.States.RemoveAll(s => s.Id == effect.DataId);
+                    break;
+                case EffectCode.RecoverHp:
+                    target.ApplyHealing((int)(target.MaxHp * effect.Value1 / 100) + (int)effect.Value2);
+                    break;
+                case EffectCode.RecoverMp:
+                    target.CurrentMp = Math.Min(target.MaxMp, target.CurrentMp + (int)(target.MaxMp * effect.Value1 / 100) + (int)effect.Value2);
+                    break;
+                case EffectCode.GainTp:
+                    target.CurrentTp += (int)effect.Value1;
+                    break;
+            }
+        }
     }
 
     private int CalculateDamage(Battler attacker, Battler defender)
     {
-        int baseDamage = 20;
-        int variance = new Random().Next(-5, 6);
-        return Math.Max(0, baseDamage + variance);
+        int baseDamage = DamageFormulaEvaluator.Evaluate(DefaultAttackFormula, attacker.Stats, defender.Stats);
+        return Math.Max(1, DamageFormulaEvaluator.ApplyVariance(baseDamage, 20));
     }
 
     private int CalculateSkillDamage(Battler user, Battler target, Skill skill)
     {
-        // TODO: Parse and evaluate formula
-        return 30;
-    }
+        var result = DamageFormulaEvaluator.CalculateFullDamage(
+            skill.Damage,
+            user.Stats,
+            target.Stats,
+            skill.HitRate,
+            skill.CriticalRate
+        );
 
-    private void ApplyDamage(Battler target, int damage)
-    {
-        target.CurrentHp = Math.Max(0, target.CurrentHp - damage);
-    }
-
-    private void ApplyHealing(Battler target, int healing)
-    {
-        int maxHp = 100;
-        target.CurrentHp = Math.Min(maxHp, target.CurrentHp + healing);
+        return result.IsMiss ? 0 : result.Damage;
     }
 
     private IEnumerable<Battler> GetAllBattlers()

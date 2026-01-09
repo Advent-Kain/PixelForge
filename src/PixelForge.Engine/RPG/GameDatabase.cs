@@ -10,6 +10,11 @@ public class GameDatabase
     public Dictionary<string, Actor> Actors { get; } = new();
     public Dictionary<string, Enemy> Enemies { get; } = new();
     public Dictionary<string, Troop> Troops { get; } = new();
+    public Dictionary<string, Skill> Skills { get; } = new();
+    public Dictionary<string, Item> Items { get; } = new();
+    public Dictionary<string, Equipment> Equipment { get; } = new();
+    public Dictionary<string, CharacterClass> Classes { get; } = new();
+    public Dictionary<string, State> States { get; } = new();
 
     /// <summary>
     /// Get an actor definition by ID.
@@ -33,5 +38,45 @@ public class GameDatabase
     public Troop? GetTroop(string troopId)
     {
         return Troops.TryGetValue(troopId, out var troop) ? troop : null;
+    }
+
+    /// <summary>
+    /// Get a skill definition by ID.
+    /// </summary>
+    public Skill? GetSkill(string skillId)
+    {
+        return Skills.TryGetValue(skillId, out var skill) ? skill : null;
+    }
+
+    /// <summary>
+    /// Get a consumable item by ID.
+    /// </summary>
+    public Item? GetItem(string itemId)
+    {
+        return Items.TryGetValue(itemId, out var item) ? item : null;
+    }
+
+    /// <summary>
+    /// Get equipment by ID.
+    /// </summary>
+    public Equipment? GetEquipment(string equipmentId)
+    {
+        return Equipment.TryGetValue(equipmentId, out var equip) ? equip : null;
+    }
+
+    /// <summary>
+    /// Get a character class by ID.
+    /// </summary>
+    public CharacterClass? GetClass(string classId)
+    {
+        return Classes.TryGetValue(classId, out var charClass) ? charClass : null;
+    }
+
+    /// <summary>
+    /// Get a state definition by ID.
+    /// </summary>
+    public State? GetState(string stateId)
+    {
+        return States.TryGetValue(stateId, out var state) ? state : null;
     }
 }

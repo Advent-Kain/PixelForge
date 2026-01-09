@@ -37,16 +37,16 @@ public class BattleSystem
             var partyActor = partyManager.GetActor(memberId);
             var actorData = partyActor?.ActorData ?? database.GetActor(memberId);
             var actorStats = partyActor?.GetCurrentStats() ?? actorData?.BaseStats ?? new ActorStats();
-            int maxHp = actorStats.MaxHp;
-            int maxMp = actorStats.MaxMp;
 
             var battler = new Battler
             {
                 ActorId = memberId,
                 IsActor = true,
-                CurrentHp = partyActor != null ? Math.Clamp(partyActor.CurrentHp, 0, maxHp) : maxHp,
-                CurrentMp = partyActor != null ? Math.Clamp(partyActor.CurrentMp, 0, maxMp) : maxMp,
-                CurrentTp = partyActor?.CurrentTp ?? 0
+                Stats = actorStats,
+                CurrentHp = partyActor != null ? Math.Clamp(partyActor.CurrentHp, 0, actorStats.MaxHp) : actorStats.MaxHp,
+                CurrentMp = partyActor != null ? Math.Clamp(partyActor.CurrentMp, 0, actorStats.MaxMp) : actorStats.MaxMp,
+                CurrentTp = partyActor?.CurrentTp ?? 0,
+                LearnedSkills = partyActor?.LearnedSkills ?? new List<string>()
             };
             _state.Party.Add(battler);
         }
@@ -62,6 +62,7 @@ public class BattleSystem
             {
                 EnemyId = member.EnemyId,
                 IsActor = false,
+                Stats = enemyStats,
                 CurrentHp = enemyStats.MaxHp,
                 CurrentMp = enemyStats.MaxMp,
                 CurrentTp = 0,
@@ -151,8 +152,20 @@ public class Battler
     public int CurrentTp { get; set; }
     public int CurrentAp { get; set; } // Action Points for combo system
 
+    // Stats for damage calculations
+    public ActorStats Stats { get; set; } = new();
+    public int MaxHp => Stats.MaxHp;
+    public int MaxMp => Stats.MaxMp;
+
+    // Guard state reduces incoming damage
+    public bool IsGuarding { get; set; }
+    public float GuardMultiplier { get; set; } = 0.5f; // 50% damage when guarding
+
     public float ATBGauge { get; set; }
     public List<State> States { get; set; } = new();
+
+    // Learned skills for actors
+    public List<string> LearnedSkills { get; set; } = new();
 
     public bool IsAlive => CurrentHp > 0;
     public bool CanAct => IsAlive && !HasRestriction();
@@ -160,6 +173,26 @@ public class Battler
     private bool HasRestriction()
     {
         return States.Any(s => s.Restriction != StateRestriction.None);
+    }
+
+    /// <summary>
+    /// Apply damage to this battler, accounting for guard state.
+    /// </summary>
+    public int ApplyDamage(int rawDamage)
+    {
+        int actualDamage = IsGuarding ? (int)(rawDamage * GuardMultiplier) : rawDamage;
+        CurrentHp = Math.Max(0, CurrentHp - actualDamage);
+        return actualDamage;
+    }
+
+    /// <summary>
+    /// Apply healing to this battler.
+    /// </summary>
+    public int ApplyHealing(int amount)
+    {
+        int actualHealing = Math.Min(amount, MaxHp - CurrentHp);
+        CurrentHp = Math.Min(MaxHp, CurrentHp + amount);
+        return actualHealing;
     }
 }
 

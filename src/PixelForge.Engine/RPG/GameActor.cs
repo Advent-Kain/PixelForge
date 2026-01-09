@@ -12,6 +12,9 @@ public class GameActor
     public Actor ActorData { get; set; } = null!;
     public CharacterClass? ClassData { get; set; }
 
+    // Reference to game database for equipment lookups
+    private GameDatabase? _database;
+
     // Current state
     public int Level { get; set; } = 1;
     public int Experience { get; set; }
@@ -37,6 +40,14 @@ public class GameActor
     public List<ActiveState> States { get; set; } = new();
 
     /// <summary>
+    /// Set the database reference for equipment lookups.
+    /// </summary>
+    public void SetDatabase(GameDatabase database)
+    {
+        _database = database;
+    }
+
+    /// <summary>
     /// Get current stats with equipment and buffs applied.
     /// </summary>
     public ActorStats GetCurrentStats()
@@ -54,9 +65,23 @@ public class GameActor
         };
 
         // Apply equipment bonuses
-        foreach (var itemId in EquippedItems.Values.Where(id => !string.IsNullOrEmpty(id)))
+        if (_database != null)
         {
-            // TODO: Load equipment and apply stats
+            foreach (var itemId in EquippedItems.Values.Where(id => !string.IsNullOrEmpty(id)))
+            {
+                var equipment = _database.GetEquipment(itemId!);
+                if (equipment != null)
+                {
+                    stats.MaxHp += equipment.Stats.MaxHp;
+                    stats.MaxMp += equipment.Stats.MaxMp;
+                    stats.Attack += equipment.Stats.Attack;
+                    stats.Defense += equipment.Stats.Defense;
+                    stats.MagicAttack += equipment.Stats.MagicAttack;
+                    stats.MagicDefense += equipment.Stats.MagicDefense;
+                    stats.Agility += equipment.Stats.Agility;
+                    stats.Luck += equipment.Stats.Luck;
+                }
+            }
         }
 
         // Apply class bonuses
@@ -72,7 +97,39 @@ public class GameActor
             stats.Luck += ClassData.StatBonuses.Luck;
         }
 
+        // Apply state modifiers (buffs/debuffs)
+        foreach (var activeState in States)
+        {
+            ApplyStateModifiers(stats, activeState.StateData);
+        }
+
         return stats;
+    }
+
+    /// <summary>
+    /// Apply state modifiers to stats.
+    /// </summary>
+    private void ApplyStateModifiers(ActorStats stats, State state)
+    {
+        foreach (var trait in state.Traits)
+        {
+            if (trait.Code == TraitCode.Parameter)
+            {
+                // Trait value is a multiplier (e.g., 1.5 = +50%, 0.5 = -50%)
+                float multiplier = trait.Value;
+                switch (trait.DataId)
+                {
+                    case "0": stats.MaxHp = (int)(stats.MaxHp * multiplier); break;
+                    case "1": stats.MaxMp = (int)(stats.MaxMp * multiplier); break;
+                    case "2": stats.Attack = (int)(stats.Attack * multiplier); break;
+                    case "3": stats.Defense = (int)(stats.Defense * multiplier); break;
+                    case "4": stats.MagicAttack = (int)(stats.MagicAttack * multiplier); break;
+                    case "5": stats.MagicDefense = (int)(stats.MagicDefense * multiplier); break;
+                    case "6": stats.Agility = (int)(stats.Agility * multiplier); break;
+                    case "7": stats.Luck = (int)(stats.Luck * multiplier); break;
+                }
+            }
+        }
     }
 
     /// <summary>
