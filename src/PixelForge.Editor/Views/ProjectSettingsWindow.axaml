@@ -1,0 +1,44 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:PixelForge.Editor.ViewModels"
+        x:Class="PixelForge.Editor.Views.ProjectSettingsWindow"
+        x:DataType="vm:ProjectSettingsViewModel"
+        Title="Project Settings"
+        Width="520"
+        Height="520"
+        WindowStartupLocation="CenterScreen">
+
+    <Design.DataContext>
+        <vm:ProjectSettingsViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="*,Auto">
+        <ScrollViewer Margin="20" Grid.Row="0">
+            <StackPanel Spacing="12">
+                <TextBlock Text="Runtime Game Project" FontWeight="Bold" />
+                <TextBox Text="{Binding RuntimeProjectPath}" Watermark="Path to .csproj or project folder" />
+
+                <TextBlock Text="Game Title" FontWeight="Bold" Margin="0,10,0,0" />
+                <TextBox Text="{Binding GameTitle}" />
+
+                <TextBlock Text="Resolution" FontWeight="Bold" Margin="0,10,0,0" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <NumericUpDown Value="{Binding WindowWidth}" Minimum="320" Maximum="7680" Width="120" />
+                    <TextBlock Text="x" VerticalAlignment="Center" />
+                    <NumericUpDown Value="{Binding WindowHeight}" Minimum="240" Maximum="4320" Width="120" />
+                </StackPanel>
+
+                <TextBlock Text="Battle Mode" FontWeight="Bold" Margin="0,10,0,0" />
+                <ComboBox ItemsSource="{Binding BattleModes}" SelectedItem="{Binding SelectedBattleMode}" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="20">
+            <Button Content="Save" Command="{Binding SaveCommand}" Padding="20,10" Margin="0,0,10,0" />
+            <Button Content="Close" Click="CloseButton_Click" Padding="20,10" />
+        </StackPanel>
+    </Grid>
+</Window>

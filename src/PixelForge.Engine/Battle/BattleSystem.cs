@@ -20,12 +20,17 @@ public class BattleSystem
         _mode = BattleMode.TurnBased;
     }
 
+    public void SetDefaultMode(BattleMode mode)
+    {
+        _mode = mode;
+    }
+
     /// <summary>
     /// Start a battle.
     /// </summary>
-    public void StartBattle(Troop troop, BattleMode mode = BattleMode.TurnBased)
+    public void StartBattle(Troop troop, BattleMode? mode = null)
     {
-        _mode = mode;
+        var selectedMode = mode ?? _mode;
         _state = new BattleState();
         var gameState = _game.GetGameState();
         var partyManager = _game.GetPartyManager();
@@ -75,7 +80,7 @@ public class BattleSystem
         }
 
         // Create appropriate controller
-        _controller = mode switch
+        _controller = selectedMode switch
         {
             BattleMode.TurnBased => new TurnBasedController(_game, _state),
             BattleMode.ATB => new ATBController(_game, _state),

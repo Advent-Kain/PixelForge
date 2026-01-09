@@ -277,6 +277,10 @@ public class ExportService
 
     private static string ResolveRuntimeProjectPath(string projectPath)
     {
+        var configuredPath = ProjectManager.GetRuntimeProjectPath();
+        if (!string.IsNullOrWhiteSpace(configuredPath))
+            return configuredPath;
+
         var rootsToCheck = new[] { AppContext.BaseDirectory, projectPath };
 
         foreach (var root in rootsToCheck)

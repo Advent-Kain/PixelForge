@@ -33,6 +33,22 @@ public static class ProjectManager
         };
     }
 
+    public static string? GetRuntimeProjectPath()
+    {
+        var runtimePath = CurrentProject?.RuntimeProjectPath;
+        if (string.IsNullOrWhiteSpace(runtimePath))
+            return null;
+
+        var trimmedPath = runtimePath.Trim();
+        if (Path.IsPathRooted(trimmedPath))
+            return trimmedPath;
+
+        if (ProjectRoot == null)
+            return trimmedPath;
+
+        return Path.Combine(ProjectRoot, trimmedPath);
+    }
+
     public static string? GetMapsDirectory()
     {
         if (!HasProject)

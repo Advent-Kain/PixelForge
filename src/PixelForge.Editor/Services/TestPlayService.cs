@@ -23,7 +23,8 @@ public class TestPlayService
     public TestPlayService(string projectPath)
     {
         _projectPath = projectPath;
-        _gamePath = Path.Combine(projectPath, "src", "PixelForge.Game");
+        _gamePath = ProjectManager.GetRuntimeProjectPath()
+            ?? Path.Combine(projectPath, "src", "PixelForge.Game");
     }
 
     /// <summary>
