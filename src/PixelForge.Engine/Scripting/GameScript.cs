@@ -1,6 +1,6 @@
 using PixelForge.Engine.Core;
 using PixelForge.Engine.Events;
-using PixelForge.Engine.Map;
+using PixelForge.Shared.Models;
 
 namespace PixelForge.Engine.Scripting;
 
@@ -24,7 +24,7 @@ public abstract class GameScript
     {
     }
 
-    public virtual void OnMapLoad(Map map)
+    public virtual void OnMapLoad(MapData map)
     {
     }
 

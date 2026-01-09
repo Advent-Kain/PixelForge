@@ -72,12 +72,11 @@ public class TileRenderer
             return;
 
         // Calculate source rectangle from tile ID
-        int tilesPerRow = (texture.Width - (tileset.Margin * 2) + tileset.Spacing)
-            / Math.Max(1, tileset.TileWidth + tileset.Spacing);
-        if (tilesPerRow <= 0)
-            return;
-
-        int tilesPerRow = Math.Max(1, (texture.Width - tileset.Margin * 2 + tileset.Spacing) / (tileset.TileWidth + tileset.Spacing));
+        int tilesPerRow = Math.Max(
+            1,
+            (texture.Width - tileset.Margin * 2 + tileset.Spacing)
+            / (tileset.TileWidth + tileset.Spacing)
+        );
         int sourceX = tileset.Margin + (tile.TileId % tilesPerRow) * (tileset.TileWidth + tileset.Spacing);
         int sourceY = tileset.Margin + (tile.TileId / tilesPerRow) * (tileset.TileHeight + tileset.Spacing);
 
@@ -151,11 +150,4 @@ public class TileRenderer
         }
     }
 
-    /// <summary>
-    /// Clear all registered tilesets.
-    /// </summary>
-    public void ClearTilesets()
-    {
-        _tilesets.Clear();
-    }
 }
