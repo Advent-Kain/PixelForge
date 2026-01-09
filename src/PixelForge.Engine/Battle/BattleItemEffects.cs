@@ -1,5 +1,6 @@
 using PixelForge.Engine.Core;
 using PixelForge.Shared.Models.Database;
+using System.Linq;
 
 namespace PixelForge.Engine.Battle;
 
@@ -31,6 +32,16 @@ public static class BattleItemEffects
     {
         switch (effect.Code)
         {
+            case EffectCode.AddState:
+                if (effect.DataId != null && new Random().NextDouble() * 100 < effect.Value1)
+                {
+                    var state = game.GetDatabase().GetState(effect.DataId);
+                    if (state != null && !target.States.Any(s => s.Id == state.Id))
+                    {
+                        target.States.Add(state);
+                    }
+                }
+                break;
             case EffectCode.RecoverHp:
                 ApplyHpRecovery(game, target, effect);
                 break;

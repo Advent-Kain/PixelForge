@@ -8,6 +8,9 @@ namespace PixelForge.Shared.Models;
 /// </summary>
 public class MapLayer
 {
+    private bool _visible = true;
+
+    public event EventHandler? VisibilityChanged;
     /// <summary>
     /// Unique identifier for this layer.
     /// </summary>
@@ -30,7 +33,17 @@ public class MapLayer
     /// Visibility flag for editor.
     /// </summary>
     [JsonPropertyName("visible")]
-    public bool Visible { get; set; } = true;
+    public bool Visible
+    {
+        get => _visible;
+        set
+        {
+            if (_visible == value)
+                return;
+            _visible = value;
+            VisibilityChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
 
     /// <summary>
     /// Opacity (0.0 to 1.0).

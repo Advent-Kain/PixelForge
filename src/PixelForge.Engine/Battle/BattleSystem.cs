@@ -188,6 +188,10 @@ public class Battler
     {
         int actualDamage = IsGuarding ? (int)(rawDamage * GuardMultiplier) : rawDamage;
         CurrentHp = Math.Max(0, CurrentHp - actualDamage);
+        if (CurrentHp == 0)
+        {
+            IsGuarding = false;
+        }
         return actualDamage;
     }
 
@@ -196,8 +200,13 @@ public class Battler
     /// </summary>
     public int ApplyHealing(int amount)
     {
+        bool wasDead = CurrentHp <= 0;
         int actualHealing = Math.Min(amount, MaxHp - CurrentHp);
         CurrentHp = Math.Min(MaxHp, CurrentHp + amount);
+        if (wasDead && CurrentHp > 0)
+        {
+            IsGuarding = false;
+        }
         return actualHealing;
     }
 }
