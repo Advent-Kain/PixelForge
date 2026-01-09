@@ -89,6 +89,9 @@ public class Armor : Equipment
 {
     [JsonPropertyName("armorType")]
     public ArmorType ArmorType { get; set; }
+
+    [JsonPropertyName("armorClass")]
+    public ArmorClass ArmorClass { get; set; }
 }
 
 /// <summary>
@@ -154,6 +157,7 @@ public enum EquipType
     Weapon,
     Head,
     Body,
+    Arms,
     Legs,
     Accessory
 }
@@ -166,6 +170,7 @@ public enum EquipSlot
     Weapon,
     Head,
     Body,
+    Arms,
     Legs,
     Accessory1,
     Accessory2
@@ -197,6 +202,16 @@ public enum ArmorType
     Armor = 1,
     Greaves = 2,
     Accessory = 3
+}
+
+/// <summary>
+/// Armor class types.
+/// </summary>
+public enum ArmorClass
+{
+    Light = 0,
+    Medium = 1,
+    Heavy = 2
 }
 
 /// <summary>

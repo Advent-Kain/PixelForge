@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using PixelForge.Engine.Core;
 using PixelForge.Engine.RPG;
+using PixelForge.Shared.Models.Database;
 
 namespace PixelForge.Engine.UI;
 
@@ -175,9 +176,9 @@ public class StatusMenu : IMenu
     {
         var database = _game.GetDatabase();
 
-        string ResolveName(string slotKey)
+        string ResolveName(EquipSlot slot)
         {
-            if (!actor.EquippedItems.TryGetValue(slotKey, out var itemId) || string.IsNullOrEmpty(itemId))
+            if (!actor.EquippedItems.TryGetValue(slot, out var itemId) || string.IsNullOrEmpty(itemId))
                 return "None";
 
             var equipment = database.GetEquipment(itemId);
@@ -186,12 +187,13 @@ public class StatusMenu : IMenu
 
         return new[]
         {
-            $"Weapon:   {ResolveName("weapon")}",
-            $"Shield:   {ResolveName("shield")}",
-            $"Head:     {ResolveName("head")}",
-            $"Body:     {ResolveName("body")}",
-            $"Acc 1:    {ResolveName("accessory1")}",
-            $"Acc 2:    {ResolveName("accessory2")}"
+            $"Weapon:   {ResolveName(EquipSlot.Weapon)}",
+            $"Head:     {ResolveName(EquipSlot.Head)}",
+            $"Body:     {ResolveName(EquipSlot.Body)}",
+            $"Arms:     {ResolveName(EquipSlot.Arms)}",
+            $"Legs:     {ResolveName(EquipSlot.Legs)}",
+            $"Acc 1:    {ResolveName(EquipSlot.Accessory1)}",
+            $"Acc 2:    {ResolveName(EquipSlot.Accessory2)}"
         };
     }
 }

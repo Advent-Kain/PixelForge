@@ -354,6 +354,7 @@ public class SaveManager
             { EquipSlot.Weapon, null },
             { EquipSlot.Head, null },
             { EquipSlot.Body, null },
+            { EquipSlot.Arms, null },
             { EquipSlot.Legs, null },
             { EquipSlot.Accessory1, null },
             { EquipSlot.Accessory2, null }
@@ -365,7 +366,6 @@ public class SaveManager
             {
                 result[slot] = kvp.Value;
             }
-            // Handle legacy "shield" slot by ignoring it (no longer used)
         }
 
         return result;
