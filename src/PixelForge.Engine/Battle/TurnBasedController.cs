@@ -89,6 +89,7 @@ public class TurnBasedController : IBattleController
         }
 
         _currentBattler = _turnOrder[_currentBattlerIndex];
+        _currentBattler.IsGuarding = false;
 
         ResetInputState();
 
@@ -180,7 +181,6 @@ public class TurnBasedController : IBattleController
     /// </summary>
     private void ExecuteAction(BattleAction action)
     {
-        action.User.IsGuarding = false;
         switch (action.Type)
         {
             case ActionType.Attack:
@@ -312,12 +312,6 @@ public class TurnBasedController : IBattleController
     /// </summary>
     private void EndTurn()
     {
-        // Clear guard state at end of turn
-        if (_currentBattler != null)
-        {
-            _currentBattler.IsGuarding = false;
-        }
-
         _currentBattlerIndex++;
         StartNewTurn();
     }
