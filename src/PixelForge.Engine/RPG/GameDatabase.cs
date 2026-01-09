@@ -19,6 +19,9 @@ public class GameDatabase
     public Dictionary<string, Troop> Troops { get; } = new();
     public Dictionary<string, Equipment> Equipment { get; } = new();
     public Dictionary<string, State> States { get; } = new();
+    public Dictionary<string, Animation> Animations { get; } = new();
+    public Dictionary<string, CommonEvent> CommonEvents { get; } = new();
+    public Dictionary<int, Tileset> Tilesets { get; } = new();
 
     /// <summary>
     /// Get an actor definition by ID.
@@ -77,10 +80,50 @@ public class GameDatabase
     }
 
     /// <summary>
+    /// Get weapon by ID.
+    /// </summary>
+    public Weapon? GetWeapon(string weaponId)
+    {
+        return Weapons.TryGetValue(weaponId, out var weapon) ? weapon : null;
+    }
+
+    /// <summary>
+    /// Get armor by ID.
+    /// </summary>
+    public Armor? GetArmor(string armorId)
+    {
+        return Armors.TryGetValue(armorId, out var armor) ? armor : null;
+    }
+
+    /// <summary>
     /// Get a state definition by ID.
     /// </summary>
     public State? GetState(string stateId)
     {
         return States.TryGetValue(stateId, out var state) ? state : null;
+    }
+
+    /// <summary>
+    /// Get an animation definition by ID.
+    /// </summary>
+    public Animation? GetAnimation(string animationId)
+    {
+        return Animations.TryGetValue(animationId, out var animation) ? animation : null;
+    }
+
+    /// <summary>
+    /// Get a common event definition by ID.
+    /// </summary>
+    public CommonEvent? GetCommonEvent(string commonEventId)
+    {
+        return CommonEvents.TryGetValue(commonEventId, out var commonEvent) ? commonEvent : null;
+    }
+
+    /// <summary>
+    /// Get a tileset definition by ID.
+    /// </summary>
+    public Tileset? GetTileset(int tilesetId)
+    {
+        return Tilesets.TryGetValue(tilesetId, out var tileset) ? tileset : null;
     }
 }

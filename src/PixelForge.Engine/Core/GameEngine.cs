@@ -256,7 +256,81 @@ public class GameEngine : Game, IGameContext
 
     private void LoadDatabase()
     {
-        // Placeholder for database load logic when runtime content loading is implemented.
+        var projectFile = LoadProjectFile();
+        var databaseDirectory = Path.Combine(
+            AppContext.BaseDirectory,
+            projectFile?.DatabasePath ?? "Database"
+        );
+
+        if (!Directory.Exists(databaseDirectory))
+        {
+            return;
+        }
+
+        _database.Actors.Clear();
+        _database.Classes.Clear();
+        _database.Skills.Clear();
+        _database.Items.Clear();
+        _database.Weapons.Clear();
+        _database.Armors.Clear();
+        _database.Equipment.Clear();
+        _database.Enemies.Clear();
+        _database.Troops.Clear();
+        _database.States.Clear();
+        _database.Tilesets.Clear();
+        _database.Animations.Clear();
+        _database.CommonEvents.Clear();
+
+        LoadCollection(databaseDirectory, "actors.json", _database.Actors, actor => actor.Id);
+        LoadCollection(databaseDirectory, "classes.json", _database.Classes, classData => classData.Id);
+        LoadCollection(databaseDirectory, "skills.json", _database.Skills, skill => skill.Id);
+        LoadCollection(databaseDirectory, "items.json", _database.Items, item => item.Id);
+        LoadCollection(databaseDirectory, "weapons.json", _database.Weapons, weapon => weapon.Id);
+        LoadCollection(databaseDirectory, "armors.json", _database.Armors, armor => armor.Id);
+        LoadCollection(databaseDirectory, "enemies.json", _database.Enemies, enemy => enemy.Id);
+        LoadCollection(databaseDirectory, "troops.json", _database.Troops, troop => troop.Id);
+        LoadCollection(databaseDirectory, "states.json", _database.States, state => state.Id);
+        LoadCollection(databaseDirectory, "tilesets.json", _database.Tilesets, tileset => tileset.Id);
+        LoadCollection(databaseDirectory, "animations.json", _database.Animations, animation => animation.Id);
+        LoadCollection(databaseDirectory, "commonEvents.json", _database.CommonEvents, commonEvent => commonEvent.Id);
+
+        foreach (var weapon in _database.Weapons.Values)
+        {
+            _database.Equipment[weapon.Id] = weapon;
+        }
+
+        foreach (var armor in _database.Armors.Values)
+        {
+            _database.Equipment[armor.Id] = armor;
+        }
+    }
+
+    private static void LoadCollection<T, TKey>(
+        string databaseDirectory,
+        string fileName,
+        Dictionary<TKey, T> target,
+        Func<T, TKey> keySelector)
+        where TKey : notnull
+    {
+        var filePath = Path.Combine(databaseDirectory, fileName);
+        if (!File.Exists(filePath))
+        {
+            return;
+        }
+
+        try
+        {
+            var json = File.ReadAllText(filePath);
+            var items = JsonSerializer.Deserialize<List<T>>(json, JsonOptions) ?? new List<T>();
+            foreach (var item in items)
+            {
+                target[keySelector(item)] = item;
+            }
+        }
+        catch
+        {
+            // Ignore malformed or unreadable database files.
+        }
     }
 
     private void ApplySystemConfig()
