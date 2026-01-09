@@ -222,15 +222,6 @@ public partial class DatabaseEditorViewModel : ViewModelBase
             Rows = 8
         };
         Tilesets.Add(tileset);
-        var tileset = new Tileset
-        {
-            Id = 1,
-            Name = "Base Tileset",
-            ImagePath = "Graphics/Tilesets/Base.png",
-            TileWidth = 48,
-            TileHeight = 48
-        };
-        Tilesets.Add(tileset);
 
         var animation = new Animation
         {
@@ -360,11 +351,14 @@ public partial class DatabaseEditorViewModel : ViewModelBase
         {
             Quests.Remove(SelectedQuest);
             SelectedQuest = Quests.FirstOrDefault();
+        }
+    }
+
+    [RelayCommand]
     private void NewTileset()
     {
         var tileset = new Tileset
         {
-            Id = Tilesets.Count == 0 ? 1 : Tilesets.Max(t => t.Id) + 1,
             Id = Tilesets.Count > 0 ? Tilesets.Max(t => t.Id) + 1 : 1,
             Name = $"Tileset{Tilesets.Count + 1:D3}"
         };
@@ -443,6 +437,9 @@ public partial class DatabaseEditorViewModel : ViewModelBase
 
         SelectedQuest.Requirements.Flags.Remove(SelectedQuestFlag);
         SelectedQuestFlag = SelectedQuest.Requirements.Flags.FirstOrDefault();
+    }
+
+    [RelayCommand]
     private void NewAnimation()
     {
         var animation = new Animation { Name = $"Animation{Animations.Count + 1:D3}" };
@@ -529,8 +526,7 @@ public partial class DatabaseEditorViewModel : ViewModelBase
             EnemiesFileName,
             TroopsFileName,
             StatesFileName,
-            QuestsFileName
-            TilesetsFileName
+            QuestsFileName,
             TilesetsFileName,
             AnimationsFileName,
             SystemConfigFileName,
@@ -610,6 +606,8 @@ public partial class DatabaseEditorViewModel : ViewModelBase
         SelectedQuestObjective = value.Objectives.FirstOrDefault();
         SelectedQuestFlag = value.Requirements.Flags.FirstOrDefault();
         SelectedPrerequisite = value.Requirements.PreviousQuests.FirstOrDefault();
+    }
+
     private void SaveSingle<T>(string fileName, T item)
     {
         var databaseDirectory = ProjectManager.GetDatabaseDirectory();

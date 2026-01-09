@@ -504,6 +504,12 @@ public class WaitHandler : IEventCommandHandler
         {
             context.Processor.WaitFor(TimeSpan.FromMilliseconds(durationFrames * (1000.0 / 60.0)));
         }
+    }
+
+    public bool IsComplete() => true;
+}
+
+/// <summary>
 /// Show Animation command handler (Code: 212).
 /// </summary>
 public class ShowAnimationHandler : IEventCommandHandler
@@ -984,19 +990,20 @@ public class ScriptHandler : IEventCommandHandler
 
     public void Execute(EventContext context)
     {
-        var script = context.Command.Parameters[0].ToString() ?? string.Empty;
+        var script = EventCommandParameterReader.GetString(context.Command.Parameters.ElementAtOrDefault(0), string.Empty);
         if (string.IsNullOrWhiteSpace(script))
         {
             _complete = true;
             return;
         }
 
-        ScriptRuntime.Instance.TryExecuteScript(script, context);
-        var script = EventCommandParameterReader.GetString(context.Command.Parameters.ElementAtOrDefault(0), string.Empty);
-
         if (context.Game is IEventCommandHost host)
         {
             host.ExecuteScript(script);
+        }
+        else
+        {
+            ScriptRuntime.Instance.TryExecuteScript(script, context);
         }
 
         _complete = true;
