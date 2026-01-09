@@ -17,10 +17,7 @@ public class GameDatabase
     public Dictionary<string, CharacterClass> Classes { get; } = new();
     public Dictionary<string, Enemy> Enemies { get; } = new();
     public Dictionary<string, Troop> Troops { get; } = new();
-    public Dictionary<string, Skill> Skills { get; } = new();
-    public Dictionary<string, Item> Items { get; } = new();
     public Dictionary<string, Equipment> Equipment { get; } = new();
-    public Dictionary<string, CharacterClass> Classes { get; } = new();
     public Dictionary<string, State> States { get; } = new();
 
     /// <summary>
@@ -77,14 +74,6 @@ public class GameDatabase
     public Equipment? GetEquipment(string equipmentId)
     {
         return Equipment.TryGetValue(equipmentId, out var equip) ? equip : null;
-    }
-
-    /// <summary>
-    /// Get a character class by ID.
-    /// </summary>
-    public CharacterClass? GetClass(string classId)
-    {
-        return Classes.TryGetValue(classId, out var charClass) ? charClass : null;
     }
 
     /// <summary>

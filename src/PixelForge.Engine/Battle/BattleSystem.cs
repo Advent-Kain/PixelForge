@@ -164,7 +164,6 @@ public class Battler
 
     public float ATBGauge { get; set; }
     public List<State> States { get; set; } = new();
-    public bool IsGuarding { get; set; }
 
     // Learned skills for actors
     public List<string> LearnedSkills { get; set; } = new();
