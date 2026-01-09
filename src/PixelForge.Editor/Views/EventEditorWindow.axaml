@@ -12,6 +12,61 @@
         <vm:EventEditorViewModel/>
     </Design.DataContext>
 
+    <Window.Resources>
+        <DataTemplate x:DataType="vm:ShowMessageParametersViewModel">
+            <StackPanel Spacing="6">
+                <TextBlock Text="Message" />
+                <TextBox Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}"
+                         AcceptsReturn="True"
+                         Height="80" />
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate x:DataType="vm:ShowChoicesParametersViewModel">
+            <StackPanel Spacing="6">
+                <TextBlock Text="Choices (one per line)" />
+                <TextBox Text="{Binding ChoicesText, UpdateSourceTrigger=PropertyChanged}"
+                         AcceptsReturn="True"
+                         Height="80" />
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate x:DataType="vm:InputNumberParametersViewModel">
+            <StackPanel Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Variable ID" Width="90" VerticalAlignment="Center" />
+                    <TextBox Text="{Binding VariableId, UpdateSourceTrigger=PropertyChanged}" Width="80" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Digits" Width="90" VerticalAlignment="Center" />
+                    <TextBox Text="{Binding Digits, UpdateSourceTrigger=PropertyChanged}" Width="80" />
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate x:DataType="vm:WaitParametersViewModel">
+            <StackPanel Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Duration (frames)" Width="120" VerticalAlignment="Center" />
+                    <TextBox Text="{Binding DurationFrames, UpdateSourceTrigger=PropertyChanged}" Width="80" />
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate x:DataType="vm:ScriptParametersViewModel">
+            <StackPanel Spacing="6">
+                <TextBlock Text="Script" />
+                <TextBox Text="{Binding Script, UpdateSourceTrigger=PropertyChanged}"
+                         AcceptsReturn="True"
+                         Height="120" />
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate x:DataType="vm:CustomParametersViewModel">
+            <StackPanel Spacing="6">
+                <TextBlock Text="Parameters (JSON array)" />
+                <TextBox Text="{Binding ParametersText, UpdateSourceTrigger=PropertyChanged}"
+                         AcceptsReturn="True"
+                         Height="80" />
+            </StackPanel>
+        </DataTemplate>
+    </Window.Resources>
+
     <DockPanel>
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="#2D2D2D" Spacing="6" Margin="5">
             <Button Content="Add Event" Command="{Binding AddEventCommand}" />
@@ -117,13 +172,39 @@
                             <DataGrid ItemsSource="{Binding Commands}"
                                       SelectedItem="{Binding SelectedCommand}"
                                       AutoGenerateColumns="False"
-                                      GridLinesVisibility="Horizontal">
+                                      GridLinesVisibility="Horizontal"
+                                      Height="240"
+                                      DockPanel.Dock="Top">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Code" Binding="{Binding Code}" Width="80" />
+                                    <DataGridTextColumn Header="Command" Binding="{Binding CommandType}" Width="160" />
                                     <DataGridTextColumn Header="Indent" Binding="{Binding Indent}" Width="80" />
-                                    <DataGridTextColumn Header="Parameters" Binding="{Binding ParametersText}" Width="*" />
+                                    <DataGridTextColumn Header="Summary" Binding="{Binding Summary}" Width="*" />
                                 </DataGrid.Columns>
                             </DataGrid>
+                            <Border Background="#252526" Padding="10" Margin="0,8,0,0">
+                                <ContentControl Content="{Binding SelectedCommand}">
+                                    <ContentControl.ContentTemplate>
+                                        <DataTemplate x:DataType="vm:EventCommandViewModel">
+                                            <StackPanel Spacing="10">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <TextBlock Text="Command" Width="70" VerticalAlignment="Center" />
+                                                    <ComboBox ItemsSource="{Binding CommandTypeOptions}"
+                                                              SelectedItem="{Binding CommandType}" />
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <TextBlock Text="Indent" Width="70" VerticalAlignment="Center" />
+                                                    <TextBox Text="{Binding Indent, UpdateSourceTrigger=PropertyChanged}" Width="80" />
+                                                </StackPanel>
+                                                <StackPanel Spacing="6" IsVisible="{Binding IsCustom}">
+                                                    <TextBlock Text="Code" />
+                                                    <TextBox Text="{Binding Code, UpdateSourceTrigger=PropertyChanged}" Width="120" />
+                                                </StackPanel>
+                                                <ContentControl Content="{Binding ParametersViewModel}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ContentControl.ContentTemplate>
+                                </ContentControl>
+                            </Border>
                         </DockPanel>
                     </Border>
                 </Grid>
