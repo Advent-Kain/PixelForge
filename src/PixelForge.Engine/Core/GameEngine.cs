@@ -260,7 +260,81 @@ public class GameEngine : Game, IGameContext
 
     private void LoadDatabase()
     {
-        // Placeholder for database load logic when runtime content loading is implemented.
+        var projectFile = LoadProjectFile(out var projectFilePath);
+        var baseDirectory = projectFilePath != null
+            ? Path.GetDirectoryName(projectFilePath) ?? Directory.GetCurrentDirectory()
+            : Directory.GetCurrentDirectory();
+        var databaseDirectory = Path.Combine(baseDirectory, projectFile?.DatabasePath ?? "Database");
+
+        if (!Directory.Exists(databaseDirectory))
+        {
+            return;
+        }
+
+        _database.Actors.Clear();
+        _database.Classes.Clear();
+        _database.Skills.Clear();
+        _database.Items.Clear();
+        _database.Weapons.Clear();
+        _database.Armors.Clear();
+        _database.Equipment.Clear();
+        _database.Enemies.Clear();
+        _database.Troops.Clear();
+        _database.States.Clear();
+        _database.Tilesets.Clear();
+        _database.Animations.Clear();
+        _database.CommonEvents.Clear();
+
+        LoadCollection(databaseDirectory, "actors.json", _database.Actors, actor => actor.Id);
+        LoadCollection(databaseDirectory, "classes.json", _database.Classes, classData => classData.Id);
+        LoadCollection(databaseDirectory, "skills.json", _database.Skills, skill => skill.Id);
+        LoadCollection(databaseDirectory, "items.json", _database.Items, item => item.Id);
+        LoadCollection(databaseDirectory, "weapons.json", _database.Weapons, weapon => weapon.Id);
+        LoadCollection(databaseDirectory, "armors.json", _database.Armors, armor => armor.Id);
+        LoadCollection(databaseDirectory, "enemies.json", _database.Enemies, enemy => enemy.Id);
+        LoadCollection(databaseDirectory, "troops.json", _database.Troops, troop => troop.Id);
+        LoadCollection(databaseDirectory, "states.json", _database.States, state => state.Id);
+        LoadCollection(databaseDirectory, "tilesets.json", _database.Tilesets, tileset => tileset.Id);
+        LoadCollection(databaseDirectory, "animations.json", _database.Animations, animation => animation.Id);
+        LoadCollection(databaseDirectory, "commonEvents.json", _database.CommonEvents, commonEvent => commonEvent.Id);
+
+        foreach (var weapon in _database.Weapons.Values)
+        {
+            _database.Equipment[weapon.Id] = weapon;
+        }
+
+        foreach (var armor in _database.Armors.Values)
+        {
+            _database.Equipment[armor.Id] = armor;
+        }
+    }
+
+    private static void LoadCollection<T, TKey>(
+        string databaseDirectory,
+        string fileName,
+        Dictionary<TKey, T> target,
+        Func<T, TKey> keySelector)
+        where TKey : notnull
+    {
+        var filePath = Path.Combine(databaseDirectory, fileName);
+        if (!File.Exists(filePath))
+        {
+            return;
+        }
+
+        try
+        {
+            var json = File.ReadAllText(filePath);
+            var items = JsonSerializer.Deserialize<List<T>>(json, JsonOptions) ?? new List<T>();
+            foreach (var item in items)
+            {
+                target[keySelector(item)] = item;
+            }
+        }
+        catch
+        {
+            // Ignore malformed or unreadable database files.
+        }
     }
 
     private void TryRunCommonEvents(GameTime gameTime)
@@ -293,7 +367,7 @@ public class GameEngine : Game, IGameContext
 
     private void ApplySystemConfig()
     {
-        var projectFile = LoadProjectFile();
+        var projectFile = LoadProjectFile(out _);
         if (projectFile?.GameSettings == null)
             return;
 
@@ -319,12 +393,19 @@ public class GameEngine : Game, IGameContext
 
     private ProjectFile? LoadProjectFile()
     {
+        return LoadProjectFile(out _);
+    }
+
+    private ProjectFile? LoadProjectFile(out string? projectFilePath)
+    {
+        projectFilePath = ResolveProjectFilePath();
+        if (projectFilePath == null)
+        {
+            return null;
+        }
+
         try
         {
-            var projectFilePath = Path.Combine(AppContext.BaseDirectory, "project.json");
-            if (!File.Exists(projectFilePath))
-                return null;
-
             var json = File.ReadAllText(projectFilePath);
             return JsonSerializer.Deserialize<ProjectFile>(json, JsonOptions);
         }
@@ -332,5 +413,23 @@ public class GameEngine : Game, IGameContext
         {
             return null;
         }
+    }
+
+    private static string? ResolveProjectFilePath()
+    {
+        var workingDirectory = Directory.GetCurrentDirectory();
+        var workingProjectFilePath = Path.Combine(workingDirectory, "project.json");
+        if (File.Exists(workingProjectFilePath))
+        {
+            return workingProjectFilePath;
+        }
+
+        var appProjectFilePath = Path.Combine(AppContext.BaseDirectory, "project.json");
+        if (File.Exists(appProjectFilePath))
+        {
+            return appProjectFilePath;
+        }
+
+        return null;
     }
 }
