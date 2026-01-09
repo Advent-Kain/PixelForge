@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:PixelForge.Editor.ViewModels"
+             xmlns:controls="using:PixelForge.Editor.Views.Controls"
              x:Class="PixelForge.Editor.Views.MapEditorView"
              x:DataType="vm:MapEditorViewModel">
 
@@ -83,21 +84,7 @@
         <Border Background="#252526" ClipToBounds="True">
             <ScrollViewer HorizontalScrollBarVisibility="Auto"
                          VerticalScrollBarVisibility="Auto">
-                <Canvas Name="MapCanvas"
-                        Width="960"
-                        Height="720"
-                        Background="#1A1A1A">
-                    <!-- Map rendering will be done via custom control -->
-                    <TextBlock Canvas.Left="10"
-                             Canvas.Top="10"
-                             Text="Map Editor Canvas"
-                             Foreground="Gray"
-                             FontSize="24" />
-                    <TextBlock Canvas.Left="10"
-                             Canvas.Top="40"
-                             Text="(Custom map rendering control will be implemented here)"
-                             Foreground="Gray" />
-                </Canvas>
+                <controls:MapEditorCanvas />
             </ScrollViewer>
         </Border>
     </DockPanel>
