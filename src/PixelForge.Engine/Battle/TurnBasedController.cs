@@ -398,28 +398,34 @@ public class TurnBasedController : IBattleController
             return false;
 
         // Check conditions
-        if (action.Condition != null)
+        switch (action.ConditionType)
         {
-            switch (action.Condition.Type)
-            {
-                case ActionConditionType.TurnCount:
-                    if (_state.TurnCount < action.Condition.TurnStart ||
-                        (_state.TurnCount - action.Condition.TurnStart) % action.Condition.TurnEnd != 0)
+            case ActionCondition.Turn:
+                int turnStart = (int)action.ConditionParam1;
+                int turnInterval = (int)action.ConditionParam2;
+                if (turnInterval <= 0)
+                {
+                    if (_state.TurnCount != turnStart)
                         return false;
-                    break;
+                }
+                else if (_state.TurnCount < turnStart ||
+                         (_state.TurnCount - turnStart) % turnInterval != 0)
+                {
+                    return false;
+                }
+                break;
 
-                case ActionConditionType.HpBelow:
-                    float hpPercent = (float)enemy.CurrentHp / enemy.MaxHp * 100;
-                    if (hpPercent > action.Condition.Value)
-                        return false;
-                    break;
+            case ActionCondition.Hp:
+                float hpPercent = (float)enemy.CurrentHp / enemy.MaxHp * 100;
+                if (hpPercent > action.ConditionParam1)
+                    return false;
+                break;
 
-                case ActionConditionType.MpBelow:
-                    float mpPercent = (float)enemy.CurrentMp / enemy.MaxMp * 100;
-                    if (mpPercent > action.Condition.Value)
-                        return false;
-                    break;
-            }
+            case ActionCondition.Mp:
+                float mpPercent = (float)enemy.CurrentMp / enemy.MaxMp * 100;
+                if (mpPercent > action.ConditionParam1)
+                    return false;
+                break;
         }
 
         return true;
