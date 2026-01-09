@@ -35,6 +35,7 @@
                 <MenuItem Header="_Database..." Command="{Binding OpenDatabaseCommand}" />
                 <MenuItem Header="_Event Editor..." Command="{Binding OpenEventEditorCommand}" />
                 <MenuItem Header="_Script Editor..." Command="{Binding OpenScriptEditorCommand}" />
+                <MenuItem Header="_Project Settings..." Command="{Binding OpenProjectSettingsCommand}" />
                 <MenuItem Header="_Resource Manager..." />
                 <MenuItem Header="_Plugin Manager..." />
             </MenuItem>

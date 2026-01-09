@@ -24,4 +24,10 @@ public class ProjectFile
 
     [JsonPropertyName("defaultMap")]
     public string DefaultMap { get; set; } = "Maps/Map001.json";
+
+    [JsonPropertyName("runtimeProjectPath")]
+    public string? RuntimeProjectPath { get; set; }
+
+    [JsonPropertyName("gameSettings")]
+    public ProjectGameSettings GameSettings { get; set; } = new();
 }

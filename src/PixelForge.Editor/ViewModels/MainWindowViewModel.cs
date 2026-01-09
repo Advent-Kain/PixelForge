@@ -159,6 +159,14 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void OpenProjectSettings()
+    {
+        var window = new Views.ProjectSettingsWindow();
+        window.Show();
+        StatusText = "Opened project settings";
+    }
+
+    [RelayCommand]
     private void Exit()
     {
         // Application exit handled by window

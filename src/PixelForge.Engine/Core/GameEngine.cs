@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -7,6 +8,7 @@ using PixelForge.Engine.Map;
 using PixelForge.Engine.RPG;
 using PixelForge.Engine.UI;
 using PixelForge.Engine.UI.Battle;
+using PixelForge.Shared.Models;
 
 namespace PixelForge.Engine.Core;
 
@@ -15,6 +17,10 @@ namespace PixelForge.Engine.Core;
 /// </summary>
 public class GameEngine : Game, IGameContext
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
     private readonly GraphicsDeviceManager _graphics;
     private SpriteBatch? _spriteBatch;
     private SpriteFont? _font;
@@ -242,4 +248,52 @@ public class GameEngine : Game, IGameContext
     /// Get the menu manager.
     /// </summary>
     public MenuManager GetMenuManager() => _menuManager;
+
+    private void LoadDatabase()
+    {
+        // Placeholder for database load logic when runtime content loading is implemented.
+    }
+
+    private void ApplySystemConfig()
+    {
+        var projectFile = LoadProjectFile();
+        if (projectFile?.GameSettings == null)
+            return;
+
+        var settings = projectFile.GameSettings;
+
+        if (!string.IsNullOrWhiteSpace(settings.Title))
+        {
+            Window.Title = settings.Title;
+        }
+
+        if (settings.WindowWidth > 0 && settings.WindowHeight > 0)
+        {
+            _graphics.PreferredBackBufferWidth = settings.WindowWidth;
+            _graphics.PreferredBackBufferHeight = settings.WindowHeight;
+            _graphics.ApplyChanges();
+        }
+
+        if (Enum.TryParse<BattleMode>(settings.BattleMode, true, out var battleMode))
+        {
+            _battleSystem.SetDefaultMode(battleMode);
+        }
+    }
+
+    private ProjectFile? LoadProjectFile()
+    {
+        try
+        {
+            var projectFilePath = Path.Combine(AppContext.BaseDirectory, "project.json");
+            if (!File.Exists(projectFilePath))
+                return null;
+
+            var json = File.ReadAllText(projectFilePath);
+            return JsonSerializer.Deserialize<ProjectFile>(json, JsonOptions);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }
