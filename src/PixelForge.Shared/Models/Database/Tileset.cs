@@ -12,7 +12,6 @@ public class Tileset
     public int Id { get; set; }
 
     [JsonPropertyName("name")]
-    public string Name { get; set; } = string.Empty;
     public string Name { get; set; } = "New Tileset";
 
     [JsonPropertyName("imagePath")]

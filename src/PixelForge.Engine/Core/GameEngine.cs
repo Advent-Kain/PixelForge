@@ -45,7 +45,7 @@ public class GameEngine : Game, IGameContext
         _gameState = new GameState();
         _inputManager = new InputManager();
         _resourceManager = new ResourceManager(Content);
-        _mapManager = new MapManager(_resourceManager, _gameState);
+        _mapManager = new MapManager(this);
         _partyManager = new PartyManager();
         _inventoryManager = new InventoryManager();
         _database = new GameDatabase();
@@ -228,11 +228,6 @@ public class GameEngine : Game, IGameContext
     /// Get the inventory manager.
     /// </summary>
     public InventoryManager GetInventoryManager() => _inventoryManager;
-
-    /// <summary>
-    /// Get the game database.
-    /// </summary>
-    public GameDatabase GetDatabase() => _database;
 
     /// <summary>
     /// Get the battle system.

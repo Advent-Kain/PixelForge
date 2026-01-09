@@ -2,7 +2,9 @@ using FluentAssertions;
 using Microsoft.Xna.Framework;
 using PixelForge.Engine.Core;
 using PixelForge.Engine.Events;
+using PixelForge.Engine.RPG;
 using PixelForge.Shared.Models;
+using Xunit;
 
 namespace PixelForge.Engine.Tests.Events;
 
@@ -93,8 +95,14 @@ public class EventProcessorFlowControlTests
         public ResourceManager GetResourceManager() =>
             throw new NotSupportedException("Resource manager not needed for flow control tests.");
 
+        public GameDatabase GetDatabase() => new();
+
         public void LoadMap(string mapId) =>
             throw new NotSupportedException("Map loading not needed for flow control tests.");
+
+        public void PlayAnimation(string animationId, Vector2 position)
+        {
+        }
     }
 
     private sealed class RecordingHandler : IEventCommandHandler

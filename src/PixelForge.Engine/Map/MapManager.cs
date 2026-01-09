@@ -19,8 +19,6 @@ public class MapManager
     private readonly IGameContext _gameContext;
     private readonly ResourceManager _resourceManager;
     private readonly TileRenderer _tileRenderer;
-    private readonly GameState _gameState;
-    private readonly GameDatabase _database;
     private readonly EventProcessor _eventProcessor;
     private readonly Dictionary<string, MapData> _loadedMaps = new();
     private readonly Queue<MapEvent> _eventQueue = new();
@@ -30,20 +28,12 @@ public class MapManager
     public MapData? CurrentMap { get; private set; }
     public Vector2 CameraPosition { get; set; }
 
-    public MapManager(ResourceManager resourceManager, GameState gameState, GameDatabase database)
     public MapManager(IGameContext gameContext)
     {
         _gameContext = gameContext;
         _resourceManager = gameContext.GetResourceManager();
         _tileRenderer = new TileRenderer(_resourceManager);
         _eventProcessor = new EventProcessor(gameContext);
-    public MapManager(ResourceManager resourceManager, GameState gameState, GameDatabase database, EventProcessor eventProcessor)
-    {
-        _resourceManager = resourceManager;
-        _tileRenderer = new TileRenderer(resourceManager);
-        _gameState = gameState;
-        _database = database;
-        _eventProcessor = eventProcessor;
     }
 
     /// <summary>
@@ -51,8 +41,9 @@ public class MapManager
     /// </summary>
     public void RefreshTilesets()
     {
+        var database = _gameContext.GetDatabase();
         _tileRenderer.ClearTilesets();
-        _tileRenderer.RegisterTilesets(_database.Tilesets.Values);
+        _tileRenderer.RegisterTilesets(database.Tilesets.Values);
     }
 
     /// <summary>
@@ -148,6 +139,8 @@ public class MapManager
             var nextEvent = _eventQueue.Dequeue();
             _activeEventId = nextEvent.Id;
             _eventProcessor.ExecuteEvent(nextEvent);
+        }
+
         // Update events, animations, etc.
         if (!_eventProcessor.IsBusy)
         {
@@ -220,7 +213,7 @@ public class MapManager
 
         foreach (var tilesetId in tilesetIds)
         {
-            var tileset = _database.GetTileset(tilesetId);
+            var tileset = _gameContext.GetDatabase().GetTileset(tilesetId);
             if (tileset != null)
             {
                 _tileRenderer.RegisterTileset(tileset);
