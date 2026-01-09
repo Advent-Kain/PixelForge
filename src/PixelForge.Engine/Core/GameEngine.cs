@@ -29,6 +29,7 @@ public class GameEngine : Game, IGameContext
     private readonly InputManager _inputManager;
     private readonly MapManager _mapManager;
     private readonly ResourceManager _resourceManager;
+    private readonly AnimationPlayer _animationPlayer;
     private readonly PartyManager _partyManager;
     private readonly InventoryManager _inventoryManager;
     private readonly GameDatabase _database;
@@ -49,6 +50,7 @@ public class GameEngine : Game, IGameContext
         _partyManager = new PartyManager();
         _inventoryManager = new InventoryManager();
         _database = new GameDatabase();
+        _animationPlayer = new AnimationPlayer(_resourceManager, _database);
         _battleSystem = new BattleSystem(this);
         _battleMenuManager = new BattleMenuManager(this);
         _menuManager = new MenuManager(this);
@@ -110,6 +112,7 @@ public class GameEngine : Game, IGameContext
 
         // Update game state
         _gameState.Update(gameTime);
+        _animationPlayer.Update(gameTime);
 
         // Handle battle updates
         if (_battleSystem.IsActive)
@@ -172,6 +175,8 @@ public class GameEngine : Game, IGameContext
         {
             _mapManager.Draw(_spriteBatch, gameTime);
         }
+
+        _animationPlayer.Draw(_spriteBatch);
 
         // Draw battle UI
         if (_battleSystem.IsActive && _font != null && _pixelTexture != null)
@@ -243,6 +248,11 @@ public class GameEngine : Game, IGameContext
     /// Get the menu manager.
     /// </summary>
     public MenuManager GetMenuManager() => _menuManager;
+
+    public void PlayAnimation(string animationId, Vector2 position)
+    {
+        _animationPlayer.Play(animationId, position);
+    }
 
     private void LoadDatabase()
     {
