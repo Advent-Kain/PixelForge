@@ -304,54 +304,7 @@ public class TurnBasedController : IBattleController
         if (action.Item == null)
             return;
 
-        foreach (var target in action.Targets)
-        {
-            if (!target.IsAlive && action.Item.Scope != SkillScope.OneAllyDead && action.Item.Scope != SkillScope.AllAlliesDead)
-                continue;
-
-            ApplyItemEffects(target, action.Item);
-        }
-    }
-
-    /// <summary>
-    /// Apply item effects to a target.
-    /// </summary>
-    private void ApplyItemEffects(Battler target, Item item)
-    {
-        foreach (var effect in item.Effects)
-        {
-            switch (effect.Code)
-            {
-                case EffectCode.RecoverHp:
-                    // Value1 = percentage, Value2 = flat amount
-                    int hpRecovery = (int)(target.MaxHp * effect.Value1 / 100) + (int)effect.Value2;
-                    target.ApplyHealing(hpRecovery);
-                    break;
-
-                case EffectCode.RecoverMp:
-                    int mpRecovery = (int)(target.MaxMp * effect.Value1 / 100) + (int)effect.Value2;
-                    target.CurrentMp = Math.Min(target.MaxMp, target.CurrentMp + mpRecovery);
-                    break;
-
-                case EffectCode.AddState:
-                    if (effect.DataId != null)
-                    {
-                        var state = _database.GetState(effect.DataId);
-                        if (state != null && !target.States.Any(s => s.Id == state.Id))
-                        {
-                            target.States.Add(state);
-                        }
-                    }
-                    break;
-
-                case EffectCode.RemoveState:
-                    if (effect.DataId != null)
-                    {
-                        target.States.RemoveAll(s => s.Id == effect.DataId);
-                    }
-                    break;
-            }
-        }
+        BattleItemEffects.ApplyItem(_game, action);
     }
 
     /// <summary>

@@ -351,38 +351,7 @@ public class ATBController : IBattleController
     {
         if (action.Item == null) return;
 
-        foreach (var target in action.Targets)
-        {
-            if (!target.IsAlive && action.Item.Scope != SkillScope.OneAllyDead && action.Item.Scope != SkillScope.AllAlliesDead)
-                continue;
-
-            foreach (var effect in action.Item.Effects)
-            {
-                switch (effect.Code)
-                {
-                    case EffectCode.RecoverHp:
-                        int hpRecovery = (int)(target.MaxHp * effect.Value1 / 100) + (int)effect.Value2;
-                        target.ApplyHealing(hpRecovery);
-                        break;
-                    case EffectCode.RecoverMp:
-                        int mpRecovery = (int)(target.MaxMp * effect.Value1 / 100) + (int)effect.Value2;
-                        target.CurrentMp = Math.Min(target.MaxMp, target.CurrentMp + mpRecovery);
-                        break;
-                    case EffectCode.AddState:
-                        if (effect.DataId != null)
-                        {
-                            var state = _database.GetState(effect.DataId);
-                            if (state != null && !target.States.Any(s => s.Id == state.Id))
-                                target.States.Add(state);
-                        }
-                        break;
-                    case EffectCode.RemoveState:
-                        if (effect.DataId != null)
-                            target.States.RemoveAll(s => s.Id == effect.DataId);
-                        break;
-                }
-            }
-        }
+        BattleItemEffects.ApplyItem(_game, action);
     }
 
     private int CalculateDamage(Battler attacker, Battler defender)
