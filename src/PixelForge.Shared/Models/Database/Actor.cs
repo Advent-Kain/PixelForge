@@ -126,6 +126,9 @@ public class EquipSlots
     [JsonPropertyName("body")]
     public bool Body { get; set; } = true;
 
+    [JsonPropertyName("arms")]
+    public bool Arms { get; set; } = true;
+
     [JsonPropertyName("legs")]
     public bool Legs { get; set; } = true;
 

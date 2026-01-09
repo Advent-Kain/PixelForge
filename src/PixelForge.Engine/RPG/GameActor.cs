@@ -29,6 +29,7 @@ public class GameActor
         { EquipSlot.Weapon, null },
         { EquipSlot.Head, null },
         { EquipSlot.Body, null },
+        { EquipSlot.Arms, null },
         { EquipSlot.Legs, null },
         { EquipSlot.Accessory1, null },
         { EquipSlot.Accessory2, null }
@@ -287,6 +288,7 @@ public class GameActor
             EquipSlot.Weapon => equipType == EquipType.Weapon,
             EquipSlot.Head => equipType == EquipType.Head,
             EquipSlot.Body => equipType == EquipType.Body,
+            EquipSlot.Arms => equipType == EquipType.Arms,
             EquipSlot.Legs => equipType == EquipType.Legs,
             EquipSlot.Accessory1 or EquipSlot.Accessory2 => equipType == EquipType.Accessory,
             _ => false
@@ -365,9 +367,10 @@ public class GameActor
 
         return slot switch
         {
-            "shield" => equipment.EquipType == EquipType.Shield,
             "head" => equipment.EquipType == EquipType.Head,
             "body" => equipment.EquipType == EquipType.Body,
+            "arms" => equipment.EquipType == EquipType.Arms,
+            "legs" => equipment.EquipType == EquipType.Legs,
             "accessory1" => equipment.EquipType == EquipType.Accessory,
             "accessory2" => equipment.EquipType == EquipType.Accessory,
             _ => false
