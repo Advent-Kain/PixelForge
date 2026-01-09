@@ -19,6 +19,7 @@ public class GameDatabase
     public Dictionary<string, Troop> Troops { get; } = new();
     public Dictionary<string, Equipment> Equipment { get; } = new();
     public Dictionary<string, State> States { get; } = new();
+    public Dictionary<string, CommonEvent> CommonEvents { get; } = new();
 
     /// <summary>
     /// Get an actor definition by ID.
@@ -82,5 +83,13 @@ public class GameDatabase
     public State? GetState(string stateId)
     {
         return States.TryGetValue(stateId, out var state) ? state : null;
+    }
+
+    /// <summary>
+    /// Get a common event definition by ID.
+    /// </summary>
+    public CommonEvent? GetCommonEvent(string commonEventId)
+    {
+        return CommonEvents.TryGetValue(commonEventId, out var commonEvent) ? commonEvent : null;
     }
 }
