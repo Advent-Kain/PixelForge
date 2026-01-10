@@ -4,7 +4,6 @@
         xmlns:views="using:PixelForge.Editor.Views"
         x:Class="PixelForge.Editor.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/icon.ico"
         Title="PixelForge - RPG Game Engine"
         Width="1400"
         Height="900">
