@@ -125,7 +125,7 @@ public class EquipmentMenu : IMenu
         string className = currentActor.ClassData?.Name ?? "Unknown Class";
 
         // Draw actor name
-        string actorName = currentActor?.ActorData?.Name ?? $"Actor {_selectedActorIndex + 1}";
+        string actorName = currentActor.ActorData?.Name ?? $"Actor {_selectedActorIndex + 1}";
         Vector2 namePos = new Vector2(windowRect.X + 20, windowRect.Y + 50);
         spriteBatch.DrawString(font, $"{actorName} - {className} (Lv {currentActor.Level})", namePos, Color.Cyan);
         spriteBatch.DrawString(font, $"HP: {currentHp}/{maxHp}   MP: {currentMp}/{maxMp}", namePos + new Vector2(0, 25), Color.White);
@@ -162,33 +162,32 @@ public class EquipmentMenu : IMenu
         Vector2 statsPos = new Vector2(statsRect.X + 10, statsRect.Y);
         spriteBatch.DrawString(font, "Stats:", statsPos, Color.White);
 
-        if (currentActor != null)
-        {
-            var stats = currentActor.GetCurrentStats();
-            spriteBatch.DrawString(font, $"HP: {currentActor.CurrentHp}/{stats.MaxHp}", statsPos + new Vector2(0, 25), Color.LightGreen);
-            spriteBatch.DrawString(font, $"MP: {currentActor.CurrentMp}/{stats.MaxMp}", statsPos + new Vector2(0, 50), Color.LightBlue);
-            spriteBatch.DrawString(font, $"ATK: {stats.Attack}", statsPos + new Vector2(0, 80), Color.White);
-            spriteBatch.DrawString(font, $"DEF: {stats.Defense}", statsPos + new Vector2(0, 105), Color.White);
-            spriteBatch.DrawString(font, $"M.ATK: {stats.MagicAttack}", statsPos + new Vector2(0, 130), Color.White);
-            spriteBatch.DrawString(font, $"M.DEF: {stats.MagicDefense}", statsPos + new Vector2(0, 155), Color.White);
-            spriteBatch.DrawString(font, $"AGI: {stats.Agility}", statsPos + new Vector2(0, 180), Color.White);
-            spriteBatch.DrawString(font, $"LUK: {stats.Luck}", statsPos + new Vector2(0, 205), Color.White);
+        // Display current actor stats
+        var stats = currentActor.GetCurrentStats();
+        spriteBatch.DrawString(font, $"HP: {currentActor.CurrentHp}/{stats.MaxHp}", statsPos + new Vector2(0, 25), Color.LightGreen);
+        spriteBatch.DrawString(font, $"MP: {currentActor.CurrentMp}/{stats.MaxMp}", statsPos + new Vector2(0, 50), Color.LightBlue);
+        spriteBatch.DrawString(font, $"ATK: {stats.Attack}", statsPos + new Vector2(0, 80), Color.White);
+        spriteBatch.DrawString(font, $"DEF: {stats.Defense}", statsPos + new Vector2(0, 105), Color.White);
+        spriteBatch.DrawString(font, $"M.ATK: {stats.MagicAttack}", statsPos + new Vector2(0, 130), Color.White);
+        spriteBatch.DrawString(font, $"M.DEF: {stats.MagicDefense}", statsPos + new Vector2(0, 155), Color.White);
+        spriteBatch.DrawString(font, $"AGI: {stats.Agility}", statsPos + new Vector2(0, 180), Color.White);
+        spriteBatch.DrawString(font, $"LUK: {stats.Luck}", statsPos + new Vector2(0, 205), Color.White);
 
-            // Show equipment-granted skills
-            var equipSkills = currentActor.GetEquipmentSkills().ToList();
-            if (equipSkills.Count > 0)
+        // Show equipment-granted skills
+        var equipSkills = currentActor.GetEquipmentSkills().ToList();
+        if (equipSkills.Count > 0)
+        {
+            spriteBatch.DrawString(font, "Equipment Skills:", statsPos + new Vector2(0, 240), Color.Yellow);
+            int skillY = 265;
+            foreach (var skillId in equipSkills.Take(4))
             {
-                spriteBatch.DrawString(font, "Equipment Skills:", statsPos + new Vector2(0, 240), Color.Yellow);
-                int skillY = 265;
-                foreach (var skillId in equipSkills.Take(4))
-                {
-                    var skill = database.GetSkill(skillId);
-                    string skillName = skill?.Name ?? skillId;
-                    spriteBatch.DrawString(font, $"  {skillName}", statsPos + new Vector2(0, skillY), Color.LightCyan);
-                    skillY += 22;
-                }
+                var skill = database.GetSkill(skillId);
+                string skillName = skill?.Name ?? skillId;
+                spriteBatch.DrawString(font, $"  {skillName}", statsPos + new Vector2(0, skillY), Color.LightCyan);
+                skillY += 22;
             }
         }
+    }
     }
 
     private void ChangeEquipment()
