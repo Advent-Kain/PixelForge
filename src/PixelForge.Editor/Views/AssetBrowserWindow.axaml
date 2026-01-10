@@ -125,14 +125,8 @@
                                VerticalAlignment="Center"/>
                     </Border>
 
-                    <!-- Audio info -->
-                    <StackPanel Margin="0,20,0,0"
-                                IsVisible="{Binding SelectedAsset.Type, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=Audio}">
-                        <TextBlock Text="Audio File" FontWeight="Bold" Margin="0,0,0,5"/>
-                        <TextBlock Text="Preview playback not implemented"
-                                   Foreground="Gray"
-                                   FontStyle="Italic"/>
-                    </StackPanel>
+                    <!-- Audio info - Note: Audio preview not yet implemented -->
+                    <!-- TODO: Add audio preview when SelectedAsset.Type == Audio -->
 
                     <!-- Usage info -->
                     <TextBlock Text="Usage:" FontWeight="Bold" Margin="0,20,0,5"/>

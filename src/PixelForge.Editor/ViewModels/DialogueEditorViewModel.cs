@@ -18,7 +18,6 @@ namespace PixelForge.Editor.ViewModels;
 public partial class DialogueEditorViewModel : ObservableObject
 {
     private readonly string _dialoguePath = "Content/Dialogues";
-    private readonly string _stringsPath = "Content/Strings";
 
     [ObservableProperty]
     private ObservableCollection<DialogueTreeInfo> _dialogueTrees = new();
