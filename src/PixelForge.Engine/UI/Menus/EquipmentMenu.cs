@@ -82,7 +82,7 @@ public class EquipmentMenu : IMenu
 
     public void Draw(SpriteBatch spriteBatch, SpriteFont font, Texture2D pixelTexture)
     {
-        var viewport = spriteBatch.GraphicsDevice.Viewport;
+        var viewport = spriteBatch.GraphicsDevice?.Viewport ?? new Viewport(0, 0, 800, 600);
         var partyManager = _game.GetPartyManager();
         var database = _game.GetDatabase();
 
