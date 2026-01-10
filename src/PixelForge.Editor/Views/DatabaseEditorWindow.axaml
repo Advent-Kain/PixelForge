@@ -60,7 +60,7 @@
                                 <TextBox Text="{Binding Nickname}" />
                             </StackPanel>
 
-                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="5">
+                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" >
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Initial Level:" />
                                 <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding InitialLevel}" Minimum="1" Maximum="99" />
 
@@ -69,7 +69,7 @@
                             </Grid>
 
                             <TextBlock Text="Base Stats" FontWeight="Bold" Margin="0,10,0,0" />
-                            <Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="5" DataContext="{Binding BaseStats}">
+                            <Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto,Auto,Auto"  DataContext="{Binding BaseStats}">
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Max HP:" />
                                 <NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding MaxHp}" Minimum="1" Maximum="9999" />
 
@@ -137,7 +137,7 @@
                                 <TextBox Text="{Binding Description}" TextWrapping="Wrap" Height="60" />
                             </StackPanel>
 
-                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10" RowDefinitions="Auto,Auto" RowSpacing="5">
+                            <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto">
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="MP Cost:" />
                                 <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding MpCost}" Minimum="0" Maximum="999" />
 
@@ -267,7 +267,7 @@
                                 <TextBox Text="{Binding ImagePath}" />
                             </StackPanel>
 
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" RowDefinitions="Auto,Auto" RowSpacing="5">
+                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto">
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Tile Width:" />
                                 <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding TileWidth}" Minimum="1" Maximum="512" />
 
@@ -275,7 +275,7 @@
                                 <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding TileHeight}" Minimum="1" Maximum="512" />
                             </Grid>
 
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" RowDefinitions="Auto,Auto" RowSpacing="5">
+                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto">
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Spacing:" />
                                 <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding Spacing}" Minimum="0" Maximum="32" />
 
@@ -283,7 +283,7 @@
                                 <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding Margin}" Minimum="0" Maximum="32" />
                             </Grid>
 
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" RowDefinitions="Auto,Auto" RowSpacing="5">
+                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto">
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Columns:" />
                                 <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding Columns}" Minimum="0" Maximum="999" />
 
@@ -328,7 +328,7 @@
                                 <TextBox Text="{Binding Name}" />
                             </StackPanel>
 
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" RowDefinitions="Auto,Auto" RowSpacing="5">
+                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto">
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Experience:" />
                                 <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding Exp}" Minimum="0" Maximum="9999999" />
 
@@ -337,7 +337,7 @@
                             </Grid>
 
                             <TextBlock Text="Stats" FontWeight="Bold" Margin="0,10,0,0" />
-                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="5" DataContext="{Binding Stats}">
+                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto"  DataContext="{Binding Stats}">
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Max HP:" />
                                 <NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding MaxHp}" Minimum="1" Maximum="9999999" />
 
@@ -462,7 +462,7 @@
                             </StackPanel>
 
                             <TextBlock Text="Rewards" FontWeight="Bold" Margin="0,10,0,0" />
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" RowDefinitions="Auto,Auto" RowSpacing="5">
+                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto">
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Experience:" />
                                 <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding Rewards.Experience}" Minimum="0" Maximum="999999" />
 
