@@ -210,7 +210,7 @@ public partial class AssetBrowserViewModel : ObservableObject
         }
     }
 
-    private async void ImportAsset()
+    private void ImportAsset()
     {
         if (SelectedCategory == null)
             return;
