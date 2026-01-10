@@ -16,7 +16,7 @@
         <DataTemplate x:DataType="vm:ShowMessageParametersViewModel">
             <StackPanel Spacing="6">
                 <TextBlock Text="Message" />
-                <TextBox Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}"
+                <TextBox Text="{Binding Text}"
                          AcceptsReturn="True"
                          Height="80" />
             </StackPanel>
@@ -24,7 +24,7 @@
         <DataTemplate x:DataType="vm:ShowChoicesParametersViewModel">
             <StackPanel Spacing="6">
                 <TextBlock Text="Choices (one per line)" />
-                <TextBox Text="{Binding ChoicesText, UpdateSourceTrigger=PropertyChanged}"
+                <TextBox Text="{Binding ChoicesText}"
                          AcceptsReturn="True"
                          Height="80" />
             </StackPanel>
@@ -33,11 +33,11 @@
             <StackPanel Spacing="6">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="Variable ID" Width="90" VerticalAlignment="Center" />
-                    <TextBox Text="{Binding VariableId, UpdateSourceTrigger=PropertyChanged}" Width="80" />
+                    <TextBox Text="{Binding VariableId}" Width="80" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="Digits" Width="90" VerticalAlignment="Center" />
-                    <TextBox Text="{Binding Digits, UpdateSourceTrigger=PropertyChanged}" Width="80" />
+                    <TextBox Text="{Binding Digits}" Width="80" />
                 </StackPanel>
             </StackPanel>
         </DataTemplate>
@@ -45,14 +45,14 @@
             <StackPanel Spacing="6">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="Duration (frames)" Width="120" VerticalAlignment="Center" />
-                    <TextBox Text="{Binding DurationFrames, UpdateSourceTrigger=PropertyChanged}" Width="80" />
+                    <TextBox Text="{Binding DurationFrames}" Width="80" />
                 </StackPanel>
             </StackPanel>
         </DataTemplate>
         <DataTemplate x:DataType="vm:ScriptParametersViewModel">
             <StackPanel Spacing="6">
                 <TextBlock Text="Script" />
-                <TextBox Text="{Binding Script, UpdateSourceTrigger=PropertyChanged}"
+                <TextBox Text="{Binding Script}"
                          AcceptsReturn="True"
                          Height="120" />
             </StackPanel>
@@ -60,7 +60,7 @@
         <DataTemplate x:DataType="vm:CustomParametersViewModel">
             <StackPanel Spacing="6">
                 <TextBlock Text="Parameters (JSON array)" />
-                <TextBox Text="{Binding ParametersText, UpdateSourceTrigger=PropertyChanged}"
+                <TextBox Text="{Binding ParametersText}"
                          AcceptsReturn="True"
                          Height="80" />
             </StackPanel>
@@ -111,16 +111,16 @@
                         <TextBlock Text="Event Details" FontWeight="Bold" />
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="Name" Width="60" VerticalAlignment="Center" />
-                            <TextBox Text="{Binding EventName, UpdateSourceTrigger=PropertyChanged}" Width="240" />
+                            <TextBox Text="{Binding EventName}" Width="240" />
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="Position" Width="60" VerticalAlignment="Center" />
-                            <TextBox Text="{Binding PositionX, UpdateSourceTrigger=PropertyChanged}" Width="60" />
-                            <TextBox Text="{Binding PositionY, UpdateSourceTrigger=PropertyChanged}" Width="60" />
+                            <TextBox Text="{Binding PositionX}" Width="60" />
+                            <TextBox Text="{Binding PositionY}" Width="60" />
                         </StackPanel>
                         <StackPanel>
                             <TextBlock Text="Note" />
-                            <TextBox Text="{Binding EventNote, UpdateSourceTrigger=PropertyChanged}"
+                            <TextBox Text="{Binding EventNote}"
                                      AcceptsReturn="True"
                                      Height="60" />
                         </StackPanel>
@@ -193,11 +193,11 @@
                                                 </StackPanel>
                                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                                     <TextBlock Text="Indent" Width="70" VerticalAlignment="Center" />
-                                                    <TextBox Text="{Binding Indent, UpdateSourceTrigger=PropertyChanged}" Width="80" />
+                                                    <TextBox Text="{Binding Indent}" Width="80" />
                                                 </StackPanel>
                                                 <StackPanel Spacing="6" IsVisible="{Binding IsCustom}">
                                                     <TextBlock Text="Code" />
-                                                    <TextBox Text="{Binding Code, UpdateSourceTrigger=PropertyChanged}" Width="120" />
+                                                    <TextBox Text="{Binding Code}" Width="120" />
                                                 </StackPanel>
                                                 <ContentControl Content="{Binding ParametersViewModel}" />
                                             </StackPanel>
