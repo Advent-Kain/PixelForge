@@ -101,18 +101,21 @@ public class EquipmentMenu : IMenu
         spriteBatch.DrawString(font, "Equipment", titlePos, Color.White);
 
         // Get current actor
-        GameActor? currentActor = null;
+        GameActor? currentActorNullable = null;
         if (_selectedActorIndex < partyManager.Party.Count)
         {
-            currentActor = partyManager.Party[_selectedActorIndex];
+            currentActorNullable = partyManager.Party[_selectedActorIndex];
         }
 
-        if (currentActor == null)
+        if (currentActorNullable == null)
         {
             Vector2 emptyPos = new Vector2(windowRect.X + 20, windowRect.Y + 50);
             spriteBatch.DrawString(font, "No party members.", emptyPos, Color.Gray);
             return;
         }
+
+        // After null check, assign to non-nullable variable
+        GameActor currentActor = currentActorNullable;
 
         var currentStats = currentActor.GetCurrentStats();
         int maxHp = Math.Max(1, currentStats.MaxHp);
