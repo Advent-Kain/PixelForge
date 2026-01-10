@@ -188,7 +188,6 @@ public class EquipmentMenu : IMenu
             }
         }
     }
-    }
 
     private void ChangeEquipment()
     {
