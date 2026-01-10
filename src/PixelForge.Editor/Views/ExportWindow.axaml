@@ -98,16 +98,17 @@
                 Background="#F5F5F5"
                 Margin="20,0">
             <Grid RowDefinitions="Auto,*">
-                <StackPanel Grid.Row="0"
-                            Orientation="Horizontal"
-                            Background="#E0E0E0"
-                            Padding="10">
-                    <TextBlock Text="Export Log" FontWeight="Bold" VerticalAlignment="Center"/>
-                    <Button Content="Clear"
-                            Command="{Binding ClearLogCommand}"
-                            Margin="10,0,0,0"
-                            Padding="5,2"/>
-                </StackPanel>
+                <Border Grid.Row="0"
+                        Background="#E0E0E0"
+                        Padding="10">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Export Log" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <Button Content="Clear"
+                                Command="{Binding ClearLogCommand}"
+                                Margin="10,0,0,0"
+                                Padding="5,2"/>
+                    </StackPanel>
+                </Border>
 
                 <ListBox Grid.Row="1"
                          ItemsSource="{Binding ExportLog}"
