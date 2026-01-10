@@ -19,6 +19,15 @@
                 <MenuItem Header="_New Project" Command="{Binding NewProjectCommand}" />
                 <MenuItem Header="_Open Project..." Command="{Binding OpenProjectCommand}" />
                 <MenuItem Header="_Save Project" Command="{Binding SaveProjectCommand}" />
+                <MenuItem Header="Recent Projects" ItemsSource="{Binding RecentProjects}">
+                    <MenuItem.ItemTemplate>
+                        <DataTemplate>
+                            <MenuItem Header="{Binding}"
+                                      Command="{Binding DataContext.OpenRecentProjectCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                      CommandParameter="{Binding}" />
+                        </DataTemplate>
+                    </MenuItem.ItemTemplate>
+                </MenuItem>
                 <Separator />
                 <MenuItem Header="E_xit" Command="{Binding ExitCommand}" />
             </MenuItem>
@@ -33,18 +42,20 @@
             <MenuItem Header="_Tools">
                 <MenuItem Header="_Database..." Command="{Binding OpenDatabaseCommand}" />
                 <MenuItem Header="_Event Editor..." Command="{Binding OpenEventEditorCommand}" />
+                <MenuItem Header="_Dialogue Editor..." Command="{Binding OpenDialogueEditorCommand}" />
+                <MenuItem Header="_String Editor..." Command="{Binding OpenStringEditorCommand}" />
                 <MenuItem Header="_Script Editor..." Command="{Binding OpenScriptEditorCommand}" />
+                <MenuItem Header="_Asset Browser..." Command="{Binding OpenAssetBrowserCommand}" />
+                <MenuItem Header="_Plugin Manager..." Command="{Binding OpenPluginManagerCommand}" />
                 <MenuItem Header="_Project Settings..." Command="{Binding OpenProjectSettingsCommand}" />
-                <MenuItem Header="_Resource Manager..." />
-                <MenuItem Header="_Plugin Manager..." />
             </MenuItem>
             <MenuItem Header="_Game">
-                <MenuItem Header="_Test Play" />
-                <MenuItem Header="_Deploy..." />
+                <MenuItem Header="{Binding TestPlayLabel}" Command="{Binding TestPlayCommand}" />
+                <MenuItem Header="_Deploy..." Command="{Binding OpenExportCommand}" />
             </MenuItem>
             <MenuItem Header="_Help">
-                <MenuItem Header="_Documentation" />
-                <MenuItem Header="_About" />
+                <MenuItem Header="_Documentation" Command="{Binding OpenDocumentationCommand}" />
+                <MenuItem Header="_About" Command="{Binding OpenAboutCommand}" />
             </MenuItem>
         </Menu>
 
@@ -54,7 +65,7 @@
             <Button Content="Open" Command="{Binding OpenProjectCommand}" />
             <Button Content="Save" Command="{Binding SaveProjectCommand}" />
             <Separator />
-            <Button Content="Test Play" />
+            <Button Content="{Binding TestPlayLabel}" Command="{Binding TestPlayCommand}" />
         </StackPanel>
 
         <!-- Status Bar -->

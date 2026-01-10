@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Windows.Input;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using PixelForge.Editor.Services;
 
 namespace PixelForge.Editor.ViewModels;
 
@@ -15,7 +16,8 @@ namespace PixelForge.Editor.ViewModels;
 /// </summary>
 public partial class AssetBrowserViewModel : ObservableObject
 {
-    private readonly string _contentPath = "Content";
+    private readonly IStorageProvider _storageProvider;
+    private ObservableCollection<AssetItemViewModel> _allAssets = new();
 
     [ObservableProperty]
     private ObservableCollection<AssetCategory> _categories = new();
@@ -35,16 +37,17 @@ public partial class AssetBrowserViewModel : ObservableObject
     [ObservableProperty]
     private string _searchFilter = string.Empty;
 
-    public ICommand RefreshCommand { get; }
-    public ICommand ImportAssetCommand { get; }
-    public ICommand DeleteAssetCommand { get; }
-    public ICommand SearchCommand { get; }
-    public ICommand OpenInExplorerCommand { get; }
+    public IRelayCommand RefreshCommand { get; }
+    public IAsyncRelayCommand ImportAssetCommand { get; }
+    public IRelayCommand DeleteAssetCommand { get; }
+    public IRelayCommand SearchCommand { get; }
+    public IRelayCommand OpenInExplorerCommand { get; }
 
-    public AssetBrowserViewModel()
+    public AssetBrowserViewModel(IStorageProvider storageProvider)
     {
+        _storageProvider = storageProvider;
         RefreshCommand = new RelayCommand(Refresh);
-        ImportAssetCommand = new RelayCommand(ImportAsset);
+        ImportAssetCommand = new AsyncRelayCommand(ImportAssetAsync, CanImportAsset);
         DeleteAssetCommand = new RelayCommand(DeleteAsset, CanDeleteAsset);
         SearchCommand = new RelayCommand(ApplySearch);
         OpenInExplorerCommand = new RelayCommand(OpenInExplorer, CanOpenInExplorer);
@@ -59,6 +62,14 @@ public partial class AssetBrowserViewModel : ObservableObject
         {
             Name = "Characters",
             Path = "Graphics/Characters",
+            Extensions = new[] { ".png", ".jpg", ".jpeg" },
+            Type = AssetType.Image
+        });
+
+        Categories.Add(new AssetCategory
+        {
+            Name = "Animations",
+            Path = "Graphics/Animations",
             Extensions = new[] { ".png", ".jpg", ".jpeg" },
             Type = AssetType.Image
         });
@@ -81,8 +92,80 @@ public partial class AssetBrowserViewModel : ObservableObject
 
         Categories.Add(new AssetCategory
         {
-            Name = "Battlebacks",
-            Path = "Graphics/Battlebacks",
+            Name = "Enemies",
+            Path = "Graphics/Enemies",
+            Extensions = new[] { ".png", ".jpg", ".jpeg" },
+            Type = AssetType.Image
+        });
+
+        Categories.Add(new AssetCategory
+        {
+            Name = "Battlebacks1",
+            Path = "Graphics/Battlebacks1",
+            Extensions = new[] { ".png", ".jpg", ".jpeg" },
+            Type = AssetType.Image
+        });
+
+        Categories.Add(new AssetCategory
+        {
+            Name = "Battlebacks2",
+            Path = "Graphics/Battlebacks2",
+            Extensions = new[] { ".png", ".jpg", ".jpeg" },
+            Type = AssetType.Image
+        });
+
+        Categories.Add(new AssetCategory
+        {
+            Name = "Parallaxes",
+            Path = "Graphics/Parallaxes",
+            Extensions = new[] { ".png", ".jpg", ".jpeg" },
+            Type = AssetType.Image
+        });
+
+        Categories.Add(new AssetCategory
+        {
+            Name = "Pictures",
+            Path = "Graphics/Pictures",
+            Extensions = new[] { ".png", ".jpg", ".jpeg" },
+            Type = AssetType.Image
+        });
+
+        Categories.Add(new AssetCategory
+        {
+            Name = "SV Actors",
+            Path = "Graphics/SV_Actors",
+            Extensions = new[] { ".png", ".jpg", ".jpeg" },
+            Type = AssetType.Image
+        });
+
+        Categories.Add(new AssetCategory
+        {
+            Name = "SV Enemies",
+            Path = "Graphics/SV_Enemies",
+            Extensions = new[] { ".png", ".jpg", ".jpeg" },
+            Type = AssetType.Image
+        });
+
+        Categories.Add(new AssetCategory
+        {
+            Name = "Titles1",
+            Path = "Graphics/Titles1",
+            Extensions = new[] { ".png", ".jpg", ".jpeg" },
+            Type = AssetType.Image
+        });
+
+        Categories.Add(new AssetCategory
+        {
+            Name = "Titles2",
+            Path = "Graphics/Titles2",
+            Extensions = new[] { ".png", ".jpg", ".jpeg" },
+            Type = AssetType.Image
+        });
+
+        Categories.Add(new AssetCategory
+        {
+            Name = "UI",
+            Path = "Graphics/UI",
             Extensions = new[] { ".png", ".jpg", ".jpeg" },
             Type = AssetType.Image
         });
@@ -136,6 +219,8 @@ public partial class AssetBrowserViewModel : ObservableObject
         {
             LoadAssetsForCategory(value);
         }
+
+        ImportAssetCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnSelectedAssetChanged(AssetItemViewModel? value)
@@ -148,6 +233,14 @@ public partial class AssetBrowserViewModel : ObservableObject
         {
             PreviewImage = null;
         }
+
+        DeleteAssetCommand.NotifyCanExecuteChanged();
+        OpenInExplorerCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnSearchFilterChanged(string value)
+    {
+        ApplySearch();
     }
 
     private void Refresh()
@@ -162,12 +255,11 @@ public partial class AssetBrowserViewModel : ObservableObject
     {
         Assets.Clear();
 
-        var fullPath = Path.Combine(_contentPath, category.Path);
+        var fullPath = Path.Combine(GetAssetsRoot(), category.Path);
 
         if (!Directory.Exists(fullPath))
         {
             Directory.CreateDirectory(fullPath);
-            return;
         }
 
         var files = Directory.GetFiles(fullPath, "*.*", SearchOption.AllDirectories)
@@ -177,7 +269,7 @@ public partial class AssetBrowserViewModel : ObservableObject
         foreach (var file in files)
         {
             var fileInfo = new FileInfo(file);
-            var relativePath = Path.GetRelativePath(_contentPath, file);
+            var relativePath = Path.GetRelativePath(GetAssetsRoot(), file);
 
             Assets.Add(new AssetItemViewModel
             {
@@ -191,6 +283,7 @@ public partial class AssetBrowserViewModel : ObservableObject
             });
         }
 
+        _allAssets = new ObservableCollection<AssetItemViewModel>(Assets);
         ApplySearch();
     }
 
@@ -210,22 +303,55 @@ public partial class AssetBrowserViewModel : ObservableObject
         }
     }
 
-    private void ImportAsset()
+    private bool CanImportAsset() => SelectedCategory != null;
+
+    private async System.Threading.Tasks.Task ImportAssetAsync()
     {
         if (SelectedCategory == null)
             return;
 
         try
         {
-            // This would open a file dialog
-            // For now, just placeholder
-            // var dialog = new OpenFileDialog();
-            // dialog.Filters.Add(new FileDialogFilter { ... });
-            // var result = await dialog.ShowAsync(mainWindow);
+            var options = new FilePickerOpenOptions
+            {
+                Title = $"Import {SelectedCategory.Name}",
+                AllowMultiple = true,
+                FileTypeFilter = new[]
+                {
+                    new FilePickerFileType($"{SelectedCategory.Name} files")
+                    {
+                        Patterns = SelectedCategory.Extensions.Select(ext => $"*{ext}").ToArray()
+                    }
+                }
+            };
 
-            Console.WriteLine("Import asset functionality would open file dialog here");
-            // After import, refresh the list
-            // Refresh();
+            var results = await _storageProvider.OpenFilePickerAsync(options);
+            if (results.Count == 0)
+            {
+                return;
+            }
+
+            var destinationRoot = Path.Combine(GetAssetsRoot(), SelectedCategory.Path);
+            Directory.CreateDirectory(destinationRoot);
+
+            foreach (var file in results)
+            {
+                var fileName = file.Name;
+                var destinationPath = Path.Combine(destinationRoot, fileName);
+
+                var localPath = file.TryGetLocalPath();
+                if (!string.IsNullOrWhiteSpace(localPath) && File.Exists(localPath))
+                {
+                    File.Copy(localPath, destinationPath, true);
+                    continue;
+                }
+
+                await using var sourceStream = await file.OpenReadAsync();
+                await using var destinationStream = File.Create(destinationPath);
+                await sourceStream.CopyToAsync(destinationStream);
+            }
+
+            Refresh();
         }
         catch (Exception ex)
         {
@@ -258,10 +384,17 @@ public partial class AssetBrowserViewModel : ObservableObject
     private void ApplySearch()
     {
         if (string.IsNullOrWhiteSpace(SearchFilter))
+        {
+            Assets.Clear();
+            foreach (var asset in _allAssets)
+            {
+                Assets.Add(asset);
+            }
             return;
+        }
 
         // Filter assets based on search
-        var filtered = Assets.Where(a =>
+        var filtered = _allAssets.Where(a =>
             a.Name.Contains(SearchFilter, StringComparison.OrdinalIgnoreCase) ||
             a.FileName.Contains(SearchFilter, StringComparison.OrdinalIgnoreCase)
         ).ToList();
@@ -310,6 +443,12 @@ public partial class AssetBrowserViewModel : ObservableObject
             len = len / 1024;
         }
         return $"{len:0.##} {sizes[order]}";
+    }
+
+    private string GetAssetsRoot()
+    {
+        return ProjectManager.GetAssetsDirectory()
+            ?? Path.Combine(Environment.CurrentDirectory, "Assets");
     }
 }
 

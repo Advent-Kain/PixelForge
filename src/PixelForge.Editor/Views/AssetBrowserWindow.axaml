@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:Avalonia.Data.Converters;assembly=Avalonia.Base"
         xmlns:vm="using:PixelForge.Editor.ViewModels"
         x:Class="PixelForge.Editor.Views.AssetBrowserWindow"
         x:DataType="vm:AssetBrowserViewModel"
@@ -88,7 +89,7 @@
 
             <!-- Preview panel -->
             <ScrollViewer Grid.Column="2">
-                <StackPanel Margin="10" IsVisible="{Binding SelectedAsset, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <StackPanel Margin="10" IsVisible="{Binding SelectedAsset, Converter={x:Static converters:ObjectConverters.IsNotNull}}">
                     <TextBlock Text="Asset Preview" FontWeight="Bold" FontSize="16" Margin="0,0,0,10"/>
 
                     <!-- Asset info -->
@@ -117,7 +118,7 @@
                             BorderBrush="Gray"
                             BorderThickness="1"
                             Background="White"
-                            IsVisible="{Binding PreviewImage, Converter={x:Static ObjectConverters.IsNotNull}}">
+                            IsVisible="{Binding PreviewImage, Converter={x:Static converters:ObjectConverters.IsNotNull}}">
                         <Image Source="{Binding PreviewImage}"
                                MaxHeight="400"
                                Stretch="Uniform"

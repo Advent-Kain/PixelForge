@@ -1,8 +1,13 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Platform.Storage;
 using PixelForge.Editor.Services;
 using PixelForge.Shared.Models;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 
@@ -26,8 +31,18 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public ObservableCollection<string> RecentProjects { get; } = new();
 
-    public MainWindowViewModel()
+    private readonly IStorageProvider _storageProvider;
+    private TestPlayService? _testPlayService;
+
+    [ObservableProperty]
+    private bool _isTestPlayRunning;
+
+    [ObservableProperty]
+    private string _testPlayLabel = "Test Play";
+
+    public MainWindowViewModel(IStorageProvider storageProvider)
     {
+        _storageProvider = storageProvider;
         // Create default map editor
         MapEditor = new MapEditorViewModel();
     }
@@ -42,46 +57,17 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void OpenProject()
+    private async System.Threading.Tasks.Task OpenProjectAsync()
     {
-        var projectFilePath = ResolveProjectFilePath();
-
-        if (projectFilePath == null || !File.Exists(projectFilePath))
-        {
-            StatusText = "Project file not found";
+        var projectFilePath = await PickProjectFileAsync();
+        if (string.IsNullOrWhiteSpace(projectFilePath))
             return;
-        }
 
-        var json = File.ReadAllText(projectFilePath);
-        var projectFile = JsonSerializer.Deserialize<ProjectFile>(json);
-
-        if (projectFile == null)
-        {
-            StatusText = "Failed to load project";
-            return;
-        }
-
-        ProjectManager.SetProject(projectFile, projectFilePath);
-        ProjectName = projectFile.Name;
-        AddRecentProject(projectFilePath);
-
-        var mapPath = ProjectManager.GetDefaultMapPath();
-        if (mapPath != null && File.Exists(mapPath))
-        {
-            var mapJson = File.ReadAllText(mapPath);
-            var mapData = JsonSerializer.Deserialize<MapData>(mapJson);
-            if (mapData != null)
-            {
-                MapEditor = new MapEditorViewModel();
-                MapEditor.LoadMap(mapData);
-            }
-        }
-
-        StatusText = "Project opened";
+        LoadProjectFromFile(projectFilePath);
     }
 
     [RelayCommand]
-    private void SaveProject()
+    private async System.Threading.Tasks.Task SaveProjectAsync()
     {
         if (!ProjectManager.HasProject)
         {
@@ -94,8 +80,21 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        var projectFilePath = ProjectManager.ProjectFilePath!;
-        var projectRoot = ProjectManager.ProjectRoot!;
+        var projectFilePath = ProjectManager.ProjectFilePath ?? await PickSaveProjectFileAsync();
+        if (string.IsNullOrWhiteSpace(projectFilePath))
+        {
+            StatusText = "Save canceled";
+            return;
+        }
+
+        var projectRoot = Path.GetDirectoryName(projectFilePath);
+        if (string.IsNullOrWhiteSpace(projectRoot))
+        {
+            StatusText = "Unable to resolve project folder";
+            return;
+        }
+
+        ProjectManager.SetProject(ProjectManager.CurrentProject!, projectFilePath);
 
         Directory.CreateDirectory(projectRoot);
         var mapsDirectory = ProjectManager.GetMapsDirectory();
@@ -131,8 +130,32 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         // Open database editor window
         var window = new Views.DatabaseEditorWindow();
-        window.Show();
+        ShowWindow(window);
         StatusText = "Opened database editor";
+    }
+
+    [RelayCommand]
+    private void OpenAssetBrowser()
+    {
+        var window = new Views.AssetBrowserWindow();
+        ShowWindow(window);
+        StatusText = "Opened asset browser";
+    }
+
+    [RelayCommand]
+    private void OpenDialogueEditor()
+    {
+        var window = new Views.DialogueEditorWindow();
+        ShowWindow(window);
+        StatusText = "Opened dialogue editor";
+    }
+
+    [RelayCommand]
+    private void OpenStringEditor()
+    {
+        var window = new Views.StringEditorWindow();
+        ShowWindow(window);
+        StatusText = "Opened string editor";
     }
 
     [RelayCommand]
@@ -140,7 +163,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         // Open script editor window
         var window = new Views.ScriptEditorWindow();
-        window.Show();
+        ShowWindow(window);
         StatusText = "Opened script editor";
     }
 
@@ -154,7 +177,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         var window = new Views.EventEditorWindow(MapEditor.CurrentMap);
-        window.Show();
+        ShowWindow(window);
         StatusText = "Opened event editor";
     }
 
@@ -162,14 +185,86 @@ public partial class MainWindowViewModel : ViewModelBase
     private void OpenProjectSettings()
     {
         var window = new Views.ProjectSettingsWindow();
-        window.Show();
+        ShowWindow(window);
         StatusText = "Opened project settings";
+    }
+
+    [RelayCommand]
+    private void OpenExport()
+    {
+        var window = new Views.ExportWindow();
+        ShowWindow(window);
+        StatusText = "Opened export window";
+    }
+
+    [RelayCommand]
+    private void OpenPluginManager()
+    {
+        var window = new Views.PluginManagerWindow();
+        ShowWindow(window);
+        StatusText = "Opened plugin manager";
+    }
+
+    [RelayCommand]
+    private async System.Threading.Tasks.Task TestPlayAsync()
+    {
+        if (!EnsureProjectAvailable())
+            return;
+
+        if (_testPlayService == null)
+        {
+            _testPlayService = new TestPlayService(ProjectManager.ProjectRoot!);
+            _testPlayService.GameStarted += (_, _) => SetTestPlayState(true);
+            _testPlayService.GameStopped += (_, _) => SetTestPlayState(false);
+            _testPlayService.OutputReceived += (_, message) => StatusText = message;
+        }
+
+        if (_testPlayService.IsRunning)
+        {
+            _testPlayService.StopTestPlay();
+            StatusText = "Test play stopped";
+            return;
+        }
+
+        StatusText = "Starting test play...";
+        var started = await _testPlayService.StartTestPlayAsync();
+        if (!started)
+        {
+            StatusText = "Failed to start test play";
+        }
+    }
+
+    [RelayCommand]
+    private void OpenDocumentation()
+    {
+        var root = ProjectManager.ProjectRoot ?? Environment.CurrentDirectory;
+        var readmePath = Path.Combine(root, "README.md");
+        OpenPathWithShell(readmePath);
+    }
+
+    [RelayCommand]
+    private void OpenAbout()
+    {
+        var window = new Views.AboutWindow();
+        ShowWindow(window);
     }
 
     [RelayCommand]
     private void Exit()
     {
-        // Application exit handled by window
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            desktop.Shutdown();
+        }
+    }
+
+    [RelayCommand]
+    private void OpenRecentProject(string? projectFilePath)
+    {
+        if (string.IsNullOrWhiteSpace(projectFilePath))
+            return;
+
+        LoadProjectFromFile(projectFilePath);
     }
 
     private void InitializeProject(string projectName)
@@ -191,23 +286,127 @@ public partial class MainWindowViewModel : ViewModelBase
         return Path.Combine(baseDirectory, sanitizedName);
     }
 
-    private string? ResolveProjectFilePath()
-    {
-        if (ProjectManager.ProjectFilePath != null)
-            return ProjectManager.ProjectFilePath;
-
-        if (RecentProjects.Count > 0)
-            return RecentProjects[0];
-
-        var defaultPath = Path.Combine(GetDefaultProjectDirectory(ProjectName), ProjectManager.ProjectFileName);
-        return defaultPath;
-    }
-
     private void AddRecentProject(string projectFilePath)
     {
         if (RecentProjects.Contains(projectFilePath))
             return;
 
         RecentProjects.Insert(0, projectFilePath);
+    }
+
+    private bool EnsureProjectAvailable()
+    {
+        if (ProjectManager.HasProject)
+            return true;
+
+        StatusText = "Save or open a project before test play.";
+        return false;
+    }
+
+    private void SetTestPlayState(bool isRunning)
+    {
+        IsTestPlayRunning = isRunning;
+        TestPlayLabel = isRunning ? "Stop" : "Test Play";
+    }
+
+    private void LoadProjectFromFile(string projectFilePath)
+    {
+        if (!File.Exists(projectFilePath))
+        {
+            StatusText = "Project file not found";
+            return;
+        }
+
+        var json = File.ReadAllText(projectFilePath);
+        var projectFile = JsonSerializer.Deserialize<ProjectFile>(json);
+
+        if (projectFile == null)
+        {
+            StatusText = "Failed to load project";
+            return;
+        }
+
+        ProjectManager.SetProject(projectFile, projectFilePath);
+        ProjectName = projectFile.Name;
+        AddRecentProject(projectFilePath);
+
+        var mapPath = ProjectManager.GetDefaultMapPath();
+        if (mapPath != null && File.Exists(mapPath))
+        {
+            var mapJson = File.ReadAllText(mapPath);
+            var mapData = JsonSerializer.Deserialize<MapData>(mapJson);
+            if (mapData != null)
+            {
+                MapEditor = new MapEditorViewModel();
+                MapEditor.LoadMap(mapData);
+            }
+        }
+
+        StatusText = "Project opened";
+    }
+
+    private async System.Threading.Tasks.Task<string?> PickProjectFileAsync()
+    {
+        var results = await _storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            AllowMultiple = false,
+            Title = "Open Project",
+            FileTypeFilter = new[]
+            {
+                new FilePickerFileType("PixelForge Project")
+                {
+                    Patterns = new[] { ProjectManager.ProjectFileName, "*.json" }
+                }
+            }
+        });
+
+        var file = results.Count > 0 ? results[0] : null;
+        return file?.TryGetLocalPath();
+    }
+
+    private async System.Threading.Tasks.Task<string?> PickSaveProjectFileAsync()
+    {
+        var file = await _storageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Save Project",
+            SuggestedFileName = ProjectManager.ProjectFileName
+        });
+
+        return file?.TryGetLocalPath();
+    }
+
+    private void OpenPathWithShell(string path)
+    {
+        try
+        {
+            if (File.Exists(path) || Directory.Exists(path))
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = path,
+                    UseShellExecute = true
+                });
+            }
+            else
+            {
+                StatusText = "Documentation not found.";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Unable to open documentation: {ex.Message}";
+        }
+    }
+
+    private void ShowWindow(Window window)
+    {
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
+            desktop.MainWindow is { } mainWindow && window != mainWindow)
+        {
+            window.Show(mainWindow);
+            return;
+        }
+
+        window.Show();
     }
 }

@@ -8,6 +8,6 @@ public partial class AssetBrowserWindow : Window
     public AssetBrowserWindow()
     {
         InitializeComponent();
-        DataContext = new AssetBrowserViewModel();
+        DataContext = new AssetBrowserViewModel(StorageProvider);
     }
 }

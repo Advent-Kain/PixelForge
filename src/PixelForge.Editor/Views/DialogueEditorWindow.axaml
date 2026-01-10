@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:Avalonia.Data.Converters;assembly=Avalonia.Base"
         xmlns:vm="using:PixelForge.Editor.ViewModels"
         x:Class="PixelForge.Editor.Views.DialogueEditorWindow"
         x:DataType="vm:DialogueEditorViewModel"
@@ -86,7 +87,7 @@
 
             <!-- Node details -->
             <ScrollViewer Grid.Column="2">
-                <StackPanel Margin="10" IsVisible="{Binding SelectedNode, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <StackPanel Margin="10" IsVisible="{Binding SelectedNode, Converter={x:Static converters:ObjectConverters.IsNotNull}}">
                     <TextBlock Text="Node Details" FontWeight="Bold" FontSize="16" Margin="0,0,0,10"/>
 
                     <!-- ID -->
