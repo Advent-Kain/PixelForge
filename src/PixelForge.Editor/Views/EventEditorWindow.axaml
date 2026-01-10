@@ -13,7 +13,7 @@
     </Design.DataContext>
 
     <Window.Resources>
-        <DataTemplate x:DataType="vm:ShowMessageParametersViewModel">
+        <DataTemplate x:Key="ShowMessageTemplate" x:DataType="vm:ShowMessageParametersViewModel">
             <StackPanel Spacing="6">
                 <TextBlock Text="Message" />
                 <TextBox Text="{Binding Text}"
@@ -21,7 +21,7 @@
                          Height="80" />
             </StackPanel>
         </DataTemplate>
-        <DataTemplate x:DataType="vm:ShowChoicesParametersViewModel">
+        <DataTemplate x:Key="ShowChoicesTemplate" x:DataType="vm:ShowChoicesParametersViewModel">
             <StackPanel Spacing="6">
                 <TextBlock Text="Choices (one per line)" />
                 <TextBox Text="{Binding ChoicesText}"
@@ -29,7 +29,7 @@
                          Height="80" />
             </StackPanel>
         </DataTemplate>
-        <DataTemplate x:DataType="vm:InputNumberParametersViewModel">
+        <DataTemplate x:Key="InputNumberTemplate" x:DataType="vm:InputNumberParametersViewModel">
             <StackPanel Spacing="6">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="Variable ID" Width="90" VerticalAlignment="Center" />
@@ -41,7 +41,7 @@
                 </StackPanel>
             </StackPanel>
         </DataTemplate>
-        <DataTemplate x:DataType="vm:WaitParametersViewModel">
+        <DataTemplate x:Key="WaitTemplate" x:DataType="vm:WaitParametersViewModel">
             <StackPanel Spacing="6">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="Duration (frames)" Width="120" VerticalAlignment="Center" />
@@ -49,7 +49,7 @@
                 </StackPanel>
             </StackPanel>
         </DataTemplate>
-        <DataTemplate x:DataType="vm:ScriptParametersViewModel">
+        <DataTemplate x:Key="ScriptTemplate" x:DataType="vm:ScriptParametersViewModel">
             <StackPanel Spacing="6">
                 <TextBlock Text="Script" />
                 <TextBox Text="{Binding Script}"
@@ -57,7 +57,7 @@
                          Height="120" />
             </StackPanel>
         </DataTemplate>
-        <DataTemplate x:DataType="vm:CustomParametersViewModel">
+        <DataTemplate x:Key="CustomTemplate" x:DataType="vm:CustomParametersViewModel">
             <StackPanel Spacing="6">
                 <TextBlock Text="Parameters (JSON array)" />
                 <TextBox Text="{Binding ParametersText}"
