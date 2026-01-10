@@ -220,7 +220,14 @@ public partial class DialogueEditorViewModel : ObservableObject
         // Remove references to this node
         foreach (var node in Nodes)
         {
-            node.Choices.RemoveAll(c => c.NextNodeId == SelectedNode.Id);
+            var choicesToRemove = node.Choices
+                .Where(choice => choice.NextNodeId == SelectedNode.Id)
+                .ToList();
+
+            foreach (var choice in choicesToRemove)
+            {
+                node.Choices.Remove(choice);
+            }
 
             if (node.NextNodeId == SelectedNode.Id)
                 node.NextNodeId = null;

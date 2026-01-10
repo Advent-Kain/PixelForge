@@ -550,7 +550,7 @@ public partial class DatabaseEditorViewModel : ViewModelBase
         LoadCollection(TilesetsFileName, Tilesets);
         LoadCollection(AnimationsFileName, Animations);
         LoadCollection(CommonEventsFileName, CommonEvents);
-        SystemConfig = LoadSingle(SystemConfigFileName) ?? new SystemConfig();
+        SystemConfig = LoadSingle<SystemConfig>(SystemConfigFileName) ?? new SystemConfig();
 
         SelectedActor = Actors.FirstOrDefault();
         SelectedSkill = Skills.FirstOrDefault();

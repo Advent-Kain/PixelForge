@@ -71,9 +71,9 @@ public class TestPlayService
                 startInfo.Arguments += $" --start-map {options.StartMap}";
             }
 
-            if (options.StartPosition != null)
+            if (options.StartPosition is { } startPosition)
             {
-                startInfo.Arguments += $" --start-pos {options.StartPosition.X},{options.StartPosition.Y}";
+                startInfo.Arguments += $" --start-pos {startPosition.X},{startPosition.Y}";
             }
 
             if (options.DisableSaveLoad)
