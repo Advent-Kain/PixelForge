@@ -62,7 +62,8 @@
                 </Grid.RowDefinitions>
 
                 <Border Grid.Row="0" Background="#1E1E1E" Padding="5">
-                    <ScrollViewer>
+                    <ScrollViewer VerticalScrollBarVisibility="Visible"
+                                  HorizontalScrollBarVisibility="Auto">
                         <TextBox Text="{Binding ScriptContent}"
                                  AcceptsReturn="True"
                                  FontFamily="Consolas,Courier New,monospace"
@@ -70,9 +71,7 @@
                                  Background="#1E1E1E"
                                  Foreground="#D4D4D4"
                                  BorderThickness="0"
-                                 TextWrapping="NoWrap"
-                                 VerticalScrollBarVisibility="Visible"
-                                 HorizontalScrollBarVisibility="Auto" />
+                                 TextWrapping="NoWrap" />
                     </ScrollViewer>
                 </Border>
 
