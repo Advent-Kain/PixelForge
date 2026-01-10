@@ -129,7 +129,7 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Margin="20">
-            <Button Content="{Binding IsExporting, Converter={x:Static ObjectConverters.BoolToObject}, ConverterParameter='Exporting...|Export'}"
+            <Button Content="Export"
                     Command="{Binding ExportCommand}"
                     IsEnabled="{Binding !IsExporting}"
                     Padding="20,10"
